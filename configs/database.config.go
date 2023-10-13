@@ -16,6 +16,12 @@ var (
 	db   *sql.DB
 )
 
+// Create a map of table names
+var TABLE_NAME = map[string]string{
+	"EVENT": "event",
+	"USER":  "user",
+}
+
 func initializeDatabase() {
 	cfg := mysql.Config{
 		User:                 utils.GoDotEnv("DB_USER"),

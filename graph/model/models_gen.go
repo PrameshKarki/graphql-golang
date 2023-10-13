@@ -2,6 +2,11 @@
 
 package model
 
+type AuthSchema struct {
+	AccessToken string `json:"accessToken"`
+	ID          string `json:"id"`
+}
+
 type Event struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -28,4 +33,15 @@ type User struct {
 	Email       string `json:"email"`
 	PhoneNumber string `json:"phoneNumber"`
 	Password    string `json:"password"`
+}
+
+type UserInput struct {
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phoneNumber"`
+	Password    string `json:"password"`
+}
+
+type UserResponse struct {
+	ID *int `json:"id,omitempty"`
 }

@@ -6,3 +6,20 @@ type User{
     password: String!
 }
 
+
+type UserResponse {
+  id: Int
+}
+
+input UserInput {
+  name: String!
+  email: String!
+  phoneNumber: String!
+  password: String!
+}
+
+extend type Query {
+  users: [User!]!
+  user(id: ID!): User!
+}
+

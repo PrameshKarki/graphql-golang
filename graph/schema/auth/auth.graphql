@@ -1,0 +1,8 @@
+type AuthSchema{
+    accessToken: String!
+    id:String!
+}
+extend type Mutation {
+  userSignUp(data: UserInput!): AuthSchema!
+}
+
