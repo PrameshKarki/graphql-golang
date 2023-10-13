@@ -8,19 +8,21 @@ type AuthSchema struct {
 }
 
 type Event struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	StartDate string `json:"startDate"`
-	Location  string `json:"location"`
-	EndDate   string `json:"endDate"`
-	CreatedBy *User  `json:"createdBy"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	StartDate   string  `json:"startDate"`
+	Location    string  `json:"location"`
+	Description *string `json:"description,omitempty"`
+	EndDate     string  `json:"endDate"`
+	CreatedBy   *User   `json:"createdBy"`
 }
 
 type EventInput struct {
-	Name      string `json:"name"`
-	StartDate string `json:"startDate"`
-	EndDate   string `json:"endDate"`
-	Location  string `json:"location"`
+	Name        string  `json:"name"`
+	StartDate   string  `json:"startDate"`
+	Description *string `json:"description,omitempty"`
+	EndDate     string  `json:"endDate"`
+	Location    string  `json:"location"`
 }
 
 type EventResponse struct {

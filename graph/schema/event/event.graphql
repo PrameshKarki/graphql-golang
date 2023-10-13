@@ -3,6 +3,7 @@ type Event{
     name: String!
     startDate: String!
     location:String!
+    description: String
     endDate: String!
     createdBy: User!
 }
@@ -14,6 +15,7 @@ type EventResponse {
 input EventInput {
   name: String!
   startDate: String!
+  description: String
   endDate: String!
   location: String!
 }

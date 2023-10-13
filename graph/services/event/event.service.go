@@ -14,7 +14,7 @@ const TABLE_NAME = `event`
 func GetEvents() ([]*model.Event, error) {
 	var events []*model.Event
 	db := configs.GetDatabaseConnection()
-	ds := configs.GetDialect().From(TABLE_NAME).Select("id", "name", "start_date", "end_date")
+	ds := configs.GetDialect().From(TABLE_NAME).Select("id", "name", "start_date", "end_date", "description")
 	sql, _, _ := ds.ToSQL()
 	rows, err := db.Query(sql)
 	if err != nil {
@@ -23,7 +23,7 @@ func GetEvents() ([]*model.Event, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var event model.Event
-		if err := rows.Scan(&event.ID, &event.Name, &event.StartDate, &event.EndDate); err != nil {
+		if err := rows.Scan(&event.ID, &event.Name, &event.StartDate, &event.EndDate, &event.Description); err != nil {
 			return nil, err
 		}
 		events = append(events, &event)
@@ -37,7 +37,7 @@ func GetEvents() ([]*model.Event, error) {
 func GetEvent(id string) (*model.Event, error) {
 	var event model.Event
 	db := configs.GetDatabaseConnection()
-	ds := configs.GetDialect().From(TABLE_NAME).Select("id", "name", "start_date", "end_date", "location").Where(goqu.Ex{"id": id})
+	ds := configs.GetDialect().From(TABLE_NAME).Select("id", "name", "start_date", "end_date", "location", "description").Where(goqu.Ex{"id": id})
 	sql, _, _ := ds.ToSQL()
 	rows, err := db.Query(sql)
 
@@ -46,7 +46,7 @@ func GetEvent(id string) (*model.Event, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		if err := rows.Scan(&event.ID, &event.Name, &event.StartDate, &event.EndDate, &event.Location); err != nil {
+		if err := rows.Scan(&event.ID, &event.Name, &event.StartDate, &event.EndDate, &event.Location, &event.Description); err != nil {
 			return nil, err
 		}
 	}
@@ -60,9 +60,9 @@ func GetEvent(id string) (*model.Event, error) {
 func CreateEvent(body model.EventInput, userId string) (int, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Insert(TABLE_NAME).
-		Cols("name", "start_date", "end_date", "location").
+		Cols("name", "start_date", "end_date", "location", "description").
 		Vals(
-			goqu.Vals{body.Name, body.StartDate, body.EndDate, body.Location},
+			goqu.Vals{body.Name, body.StartDate, body.EndDate, body.Location, body.Description},
 		)
 	sql, _, _ := ds.ToSQL()
 	fmt.Println("SQL", sql)
@@ -97,10 +97,11 @@ func UpdateEvent(eventId string, body model.EventInput) (int, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Update(TABLE_NAME).
 		Set(goqu.Record{
-			"name":       body.Name,
-			"start_date": body.StartDate,
-			"end_date":   body.EndDate,
-			"location":   body.Location,
+			"name":        body.Name,
+			"start_date":  body.StartDate,
+			"end_date":    body.EndDate,
+			"location":    body.Location,
+			"description": body.Description,
 		}).
 		Where(goqu.Ex{"id": eventId})
 
