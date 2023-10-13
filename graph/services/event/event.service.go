@@ -9,7 +9,7 @@ import (
 	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
 )
 
-const TABLE_NAME = `event`
+const TABLE_NAME = `events`
 
 func GetEvents() ([]*model.Event, error) {
 	var events []*model.Event

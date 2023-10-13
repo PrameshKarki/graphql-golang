@@ -6,15 +6,19 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/PrameshKarki/event-management-golang/graph"
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	eventService "github.com/PrameshKarki/event-management-golang/graph/services/event"
+	userEventService "github.com/PrameshKarki/event-management-golang/graph/services/userEvents"
 )
 
 // CreateEvent is the resolver for the createEvent field.
 func (r *mutationResolver) CreateEvent(ctx context.Context, data model.EventInput) (*model.EventResponse, error) {
 	id, err := eventService.CreateEvent(data, "1")
+	// Assign user to admin role
+	userEventService.CreateUserEvent(fmt.Sprint(id), "1", "ADMIN")
 	return &model.EventResponse{ID: &id}, err
 }
 

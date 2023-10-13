@@ -10,6 +10,8 @@ require (
 require (
 	github.com/doug-martin/goqu/v9 v9.18.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/sirupsen/logrus v1.9.3
+	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
 )
 
 require (
