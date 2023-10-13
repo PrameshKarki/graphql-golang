@@ -10,10 +10,13 @@ import (
 
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	services "github.com/PrameshKarki/event-management-golang/graph/services/auth"
+	"github.com/PrameshKarki/event-management-golang/utils"
 )
 
 // UserSignUp is the resolver for the userSignUp field.
 func (r *mutationResolver) UserSignUp(ctx context.Context, data model.UserInput) (*model.AuthSchema, error) {
 	userId, _ := services.UserSignUp(data)
-	return &model.AuthSchema{ID: fmt.Sprint(userId), AccessToken: "Test"}, nil
+	tokenMetaData := utils.TokenMetadata{ID: fmt.Sprint(userId), Email: data.Email}
+	accessToken, _ := utils.SignAccessToken(tokenMetaData)
+	return &model.AuthSchema{ID: fmt.Sprint(userId), AccessToken: accessToken}, nil
 }
