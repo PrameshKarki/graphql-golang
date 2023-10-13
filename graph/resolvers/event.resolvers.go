@@ -18,8 +18,18 @@ import (
 func (r *mutationResolver) CreateEvent(ctx context.Context, data model.EventInput) (*model.EventResponse, error) {
 	id, err := eventService.CreateEvent(data, "1")
 	// Assign user to admin role
-	userEventService.CreateUserEvent(fmt.Sprint(id), "1", "ADMIN")
+	userEventService.CreateUserEvent(fmt.Sprint(id), "1", "OWNER")
 	return &model.EventResponse{ID: &id}, err
+}
+
+// AddMembersToEvent is the resolver for the addMembersToEvent field.
+func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, data model.AddMemberInput) (string, error) {
+	_, err := eventService.AddMembersToEvent(id, data)
+	if err != nil {
+		return "", err
+	} else {
+		return "Success", nil
+	}
 }
 
 // DeleteEvent is the resolver for the deleteEvent field.

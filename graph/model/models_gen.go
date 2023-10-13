@@ -2,6 +2,10 @@
 
 package model
 
+type AddMemberInput struct {
+	Members []*MemberInput `json:"members"`
+}
+
 type AuthSchema struct {
 	AccessToken string `json:"accessToken"`
 	ID          string `json:"id"`
@@ -27,6 +31,11 @@ type EventInput struct {
 
 type EventResponse struct {
 	ID *int `json:"id,omitempty"`
+}
+
+type MemberInput struct {
+	ID   string `json:"id"`
+	Role string `json:"role"`
 }
 
 type User struct {

@@ -67,10 +67,11 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateEvent func(childComplexity int, data model.EventInput) int
-		DeleteEvent func(childComplexity int, id string) int
-		UpdateEvent func(childComplexity int, id string, data model.EventInput) int
-		UserSignUp  func(childComplexity int, data model.UserInput) int
+		AddMembersToEvent func(childComplexity int, id string, data model.AddMemberInput) int
+		CreateEvent       func(childComplexity int, data model.EventInput) int
+		DeleteEvent       func(childComplexity int, id string) int
+		UpdateEvent       func(childComplexity int, id string, data model.EventInput) int
+		UserSignUp        func(childComplexity int, data model.UserInput) int
 	}
 
 	Query struct {
@@ -95,6 +96,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateEvent(ctx context.Context, data model.EventInput) (*model.EventResponse, error)
+	AddMembersToEvent(ctx context.Context, id string, data model.AddMemberInput) (string, error)
 	DeleteEvent(ctx context.Context, id string) (*model.EventResponse, error)
 	UpdateEvent(ctx context.Context, id string, data model.EventInput) (*model.EventResponse, error)
 	UserSignUp(ctx context.Context, data model.UserInput) (*model.AuthSchema, error)
@@ -194,6 +196,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.EventResponse.ID(childComplexity), true
+
+	case "Mutation.addMembersToEvent":
+		if e.complexity.Mutation.AddMembersToEvent == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addMembersToEvent_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddMembersToEvent(childComplexity, args["id"].(string), args["data"].(model.AddMemberInput)), true
 
 	case "Mutation.createEvent":
 		if e.complexity.Mutation.CreateEvent == nil {
@@ -331,7 +345,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputAddMemberInput,
 		ec.unmarshalInputEventInput,
+		ec.unmarshalInputMemberInput,
 		ec.unmarshalInputUserInput,
 	)
 	first := true
@@ -450,6 +466,30 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_addMembersToEvent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 model.AddMemberInput
+	if tmp, ok := rawArgs["data"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("data"))
+		arg1, err = ec.unmarshalNAddMemberInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐAddMemberInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["data"] = arg1
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createEvent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1102,6 +1142,61 @@ func (ec *executionContext) fieldContext_Mutation_createEvent(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createEvent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addMembersToEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addMembersToEvent(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddMembersToEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.AddMemberInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addMembersToEvent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addMembersToEvent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3704,6 +3799,35 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAddMemberInput(ctx context.Context, obj interface{}) (model.AddMemberInput, error) {
+	var it model.AddMemberInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"members"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "members":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("members"))
+			data, err := ec.unmarshalNMemberInput2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐMemberInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Members = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputEventInput(ctx context.Context, obj interface{}) (model.EventInput, error) {
 	var it model.EventInput
 	asMap := map[string]interface{}{}
@@ -3763,6 +3887,44 @@ func (ec *executionContext) unmarshalInputEventInput(ctx context.Context, obj in
 				return it, err
 			}
 			it.Location = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputMemberInput(ctx context.Context, obj interface{}) (model.MemberInput, error) {
+	var it model.MemberInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "role"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "role":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Role = data
 		}
 	}
 
@@ -4001,6 +4163,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "createEvent":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createEvent(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addMembersToEvent":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addMembersToEvent(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -4608,6 +4777,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNAddMemberInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐAddMemberInput(ctx context.Context, v interface{}) (model.AddMemberInput, error) {
+	res, err := ec.unmarshalInputAddMemberInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNAuthSchema2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐAuthSchema(ctx context.Context, sel ast.SelectionSet, v model.AuthSchema) graphql.Marshaler {
 	return ec._AuthSchema(ctx, sel, &v)
 }
@@ -4727,6 +4901,23 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNMemberInput2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐMemberInput(ctx context.Context, v interface{}) ([]*model.MemberInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.MemberInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOMemberInput2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐMemberInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -5100,6 +5291,14 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	}
 	res := graphql.MarshalInt(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOMemberInput2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐMemberInput(ctx context.Context, v interface{}) (*model.MemberInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputMemberInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

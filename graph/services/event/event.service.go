@@ -11,6 +11,12 @@ import (
 
 const TABLE_NAME = `events`
 
+type MemberInEvent struct {
+	user_id  string
+	role     string
+	event_id string
+}
+
 func GetEvents() ([]*model.Event, error) {
 	var events []*model.Event
 	db := configs.GetDatabaseConnection()
@@ -115,4 +121,30 @@ func UpdateEvent(eventId string, body model.EventInput) (int, error) {
 		panic(err)
 	}
 	return int(id), nil
+}
+
+func AddMembersToEvent(event string, body model.AddMemberInput) (int, error) {
+	db := configs.GetDatabaseConnection()
+
+	sql := "INSERT INTO user_events(`user_id`,`event_id`,`role`) VALUES"
+	for index, member := range body.Members {
+		if index == len(body.Members)-1 {
+			sql += fmt.Sprintf("(%s,%s,'%s')", member.ID, event, member.Role)
+		} else {
+			sql += fmt.Sprintf("(%s,%s,'%s')", member.ID, event, member.Role) + ","
+		}
+	}
+	sql += ";"
+	fmt.Println(sql)
+
+	res, err := db.Exec(sql)
+	if err != nil {
+		panic(err)
+	}
+	id, err := res.RowsAffected()
+	if err != nil {
+		panic(err)
+	}
+	return int(id), nil
+
 }

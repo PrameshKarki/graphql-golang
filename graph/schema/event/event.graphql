@@ -20,12 +20,22 @@ input EventInput {
   location: String!
 }
 
+input MemberInput{
+  id:String!
+  role:String!
+}
+
+input AddMemberInput{
+  members:[MemberInput]!
+}
+
 type Query {
   events: [Event!]!
   event(id: ID!): Event!
 }
 type Mutation {
   createEvent(data: EventInput!): EventResponse!
+  addMembersToEvent(id:ID!,data: AddMemberInput!): String!
   deleteEvent(id: ID!): EventResponse!
   updateEvent(id: ID!, data: EventInput!): EventResponse!
 }
