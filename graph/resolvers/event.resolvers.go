@@ -43,6 +43,14 @@ func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, dat
 
 // RemoveMemberFromEvent is the resolver for the removeMemberFromEvent field.
 func (r *mutationResolver) RemoveMemberFromEvent(ctx context.Context, id string, memberID string) (*model.Response, error) {
+	allowedRoles := []string{"ADMIN", "OWNER"}
+	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
+	hasPermission := utils.Includes(allowedRoles, userRole)
+
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission to remove members from the event")
+	}
 	_, err := userEventService.RemoveUserFromEvent(id, memberID)
 	if err != nil {
 		return &model.Response{Success: false, Message: "Internal Server Error"}, err
@@ -53,6 +61,13 @@ func (r *mutationResolver) RemoveMemberFromEvent(ctx context.Context, id string,
 
 // DeleteEvent is the resolver for the deleteEvent field.
 func (r *mutationResolver) DeleteEvent(ctx context.Context, id string) (*model.Response, error) {
+	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
+	hasPermission := userRole == "OWNER"
+
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission remove the event")
+	}
 	_, err := eventService.DeleteEvent(id)
 	if err != nil {
 		return &model.Response{Success: false, Message: "Internal Server Error"}, err
@@ -63,6 +78,13 @@ func (r *mutationResolver) DeleteEvent(ctx context.Context, id string) (*model.R
 
 // UpdateEvent is the resolver for the updateEvent field.
 func (r *mutationResolver) UpdateEvent(ctx context.Context, id string, data model.EventInput) (*model.EventResponse, error) {
+	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
+	hasPermission := userRole == "OWNER"
+
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission update the event")
+	}
 	eventId, err := eventService.UpdateEvent(id, data)
 	return &model.EventResponse{ID: &eventId}, err
 }
