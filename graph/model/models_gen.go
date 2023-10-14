@@ -33,6 +33,35 @@ type EventResponse struct {
 	ID *int `json:"id,omitempty"`
 }
 
+type Expense struct {
+	ID          string  `json:"id"`
+	ItemName    string  `json:"itemName"`
+	Cost        float64 `json:"cost"`
+	Description *string `json:"description,omitempty"`
+	Category    string  `json:"category"`
+}
+
+type ExpenseInput struct {
+	ItemName    string  `json:"itemName"`
+	Cost        float64 `json:"cost"`
+	Description *string `json:"description,omitempty"`
+	Category    string  `json:"category"`
+}
+
+type ExpenseWithEvent struct {
+	ID          string  `json:"id"`
+	ItemName    string  `json:"itemName"`
+	Cost        float64 `json:"cost"`
+	Description *string `json:"description,omitempty"`
+	Category    string  `json:"category"`
+	Event       *Event  `json:"event"`
+}
+
+type ExpensesByCategory struct {
+	Category string  `json:"category"`
+	Total    float64 `json:"total"`
+}
+
 type Member struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`

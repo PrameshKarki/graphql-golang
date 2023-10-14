@@ -48,26 +48,40 @@ CREATE TABLE IF NOT EXISTS `user_events` (
   PRIMARY KEY (`id`),
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
   FOREIGN KEY (`event_id`) REFERENCES `events`(`id`)
+  UNIQUE KEY user_event_unique (user_id, event_id) 
 );
+CREATE TABLE
+    IF NOT EXISTS `expenses` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `event_id` int(11) NOT NULL,
+        `item_name` varchar(255) NOT NULL,
+        `cost` int(11) NOT NULL,
+        `description` TEXT,
+        `category` ENUM(
+            'venue',
+            'catering',
+            'decorations'
+        ) NOT NULL,
+        `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        FOREIGN KEY (`event_id`) REFERENCES `events`(`id`)
+    );
 
-
-SELECT
-    `id`,
-    `email`,
-    `phone_number`
-FROM `users`
-WHERE (
-        `email` = 'prameshkarkiss0656s17@gmail.com'
+    SELECT
+    `expenses`.`ID`,
+    `expenses`.`item_name`,
+    `expenses`.`cost`,
+    `expenses`.`description`,
+    `expenses`.`category`,
+    `events`.`id`,
+    `events`.`name`,
+    `events`.`start_date`,
+    `events`.`end_date`,
+    `events`.`location`,
+    `events`.`description`
+FROM `expenses`
+    INNER JOIN `events` ON (
+        `expenses`.`event_id` = `events`.`id`
     )
-
-SELECT
-    `users`.`id`,
-    `users`.`email`,
-    `users`.`phone_number`,
-    `user_events`.`role`,
-    `user_events`.`event_id`
-FROM `users`
-    INNER JOIN `user_events` ON (
-        `users`.`id` = `user_events`.`user_id`
-    )
-WHERE (`user_events`.`event_id` = '1')
+WHERE (`expenses`.`id` = '1')

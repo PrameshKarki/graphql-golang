@@ -1,0 +1,38 @@
+type Expense{
+    id: ID!
+    itemName: String!
+    cost: Float!
+    description: String
+    category: String!
+}
+
+type ExpenseWithEvent{
+    id: ID!
+    itemName: String!
+    cost: Float!
+    description: String
+    category: String!
+    event: Event!
+}
+
+type ExpensesByCategory{
+    category: String!
+    total: Float!
+}
+
+input ExpenseInput{
+    itemName: String!
+    cost: Float!
+    description: String
+    category: String!
+}
+
+extend type Query {
+  getExpensesOfEvent(eventId: ID!): [Expense!]!
+  getExpense(id: ID!): ExpenseWithEvent!
+  getExpensesByCategory(eventId: ID!): [ExpensesByCategory!]!
+}
+extend type Mutation {
+  addExpense(eventId: ID!,data: ExpenseInput!): Response!
+  deleteExpense(id: ID!): Response!
+}

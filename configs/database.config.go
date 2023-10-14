@@ -21,6 +21,7 @@ var TABLE_NAME = map[string]string{
 	"EVENT":       "events",
 	"USER":        "users",
 	"USER_EVENTS": "user_events",
+	"EXPENSE":     "expenses",
 }
 
 func initializeDatabase() {
