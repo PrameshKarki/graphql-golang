@@ -24,7 +24,7 @@ func (r *mutationResolver) CreateEvent(ctx context.Context, data model.EventInpu
 
 // AddMembersToEvent is the resolver for the addMembersToEvent field.
 func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, data model.AddMemberInput) (string, error) {
-	_, err := eventService.AddMembersToEvent(id, data)
+	_, err := userEventService.AddMembersToEvent(id, data)
 	if err != nil {
 		return "", err
 	} else {
