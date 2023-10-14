@@ -12,6 +12,7 @@ import (
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	eventService "github.com/PrameshKarki/event-management-golang/graph/services/event"
 	userEventService "github.com/PrameshKarki/event-management-golang/graph/services/userEvents"
+	"github.com/PrameshKarki/event-management-golang/utils"
 )
 
 // CreateEvent is the resolver for the createEvent field.
@@ -24,9 +25,14 @@ func (r *mutationResolver) CreateEvent(ctx context.Context, data model.EventInpu
 
 // AddMembersToEvent is the resolver for the addMembersToEvent field.
 func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, data model.AddMemberInput) (string, error) {
-	UID, _ := ctx.Value("user_id").(string)
-	fmt.Println(ctx.Value("user_id"))
-	fmt.Println("Ping", UID, "READ from context")
+	allowedRoles := []string{"ADMIN", "OWNER"}
+	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
+	hasPermission := utils.Includes(allowedRoles, userRole)
+
+	if !hasPermission {
+		return "", fmt.Errorf("you don't have permission to add members to the event")
+	}
 	_, err := userEventService.AddMembersToEvent(id, data)
 	if err != nil {
 		return "", err

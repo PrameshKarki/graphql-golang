@@ -107,3 +107,14 @@ func GetMembersOfEvent(eventId string) ([]*model.Member, error) {
 	}
 	return members, nil
 }
+
+func GetRoleOfUser(userId string, eventId string) (string, error) {
+	db := configs.GetDatabaseConnection()
+	ds := configs.GetDialect().Select("role").From(TABLE_NAME).Where(goqu.Ex{"user_id": userId, "event_id": eventId})
+	sql, _, _ := ds.ToSQL()
+	fmt.Println("SQL", sql)
+	row := db.QueryRow(sql)
+	var role string
+	row.Scan(&role)
+	return role, nil
+}
