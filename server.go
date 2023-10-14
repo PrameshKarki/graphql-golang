@@ -9,6 +9,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/PrameshKarki/event-management-golang/configs"
 	"github.com/PrameshKarki/event-management-golang/graph"
+	"github.com/PrameshKarki/event-management-golang/graph/middlewares/auth"
 	resolver "github.com/PrameshKarki/event-management-golang/graph/resolvers"
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,7 @@ func main() {
 	}
 
 	router := gin.Default()
+	router.Use(auth.Middleware())
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{}}))
 	configs.GetDatabaseConnection()
 
