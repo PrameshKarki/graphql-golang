@@ -25,7 +25,7 @@ func (r *mutationResolver) CreateEvent(ctx context.Context, data model.EventInpu
 
 // AddMembersToEvent is the resolver for the addMembersToEvent field.
 func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, data model.AddMemberInput) (string, error) {
-	allowedRoles := []string{"ADMIN", "OWNER"}
+	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
 	userRole, _ := userEventService.GetRoleOfUser("1", id)
 	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
 	hasPermission := utils.Includes(allowedRoles, userRole)
@@ -33,6 +33,18 @@ func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, dat
 	if !hasPermission {
 		return "", fmt.Errorf("you don't have permission to add members to the event")
 	}
+
+	isContributor := userRole == "CONTRIBUTOR"
+
+	// If the currently logged in user is contributor, then he/she can only add attendees
+	if isContributor {
+		for _, member := range data.Members {
+			if member.Role != "ATTENDEE" {
+				return "", fmt.Errorf("you have permission to add only attendees to the event")
+			}
+		}
+	}
+
 	_, err := userEventService.AddMembersToEvent(id, data)
 	if err != nil {
 		return "", err
