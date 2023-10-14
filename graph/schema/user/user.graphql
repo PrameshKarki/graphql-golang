@@ -5,7 +5,14 @@ type User{
     phoneNumber: String!
     password: String!
 }
-
+# Member is a user having a role in a event
+type Member{
+  id: ID!
+  name: String!
+  email: String!
+  phoneNumber: String!
+  role:String!
+}
 
 type UserResponse {
   id: Int

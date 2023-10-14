@@ -18,8 +18,9 @@ var (
 
 // Create a map of table names
 var TABLE_NAME = map[string]string{
-	"EVENT": "event",
-	"USER":  "user",
+	"EVENT":       "events",
+	"USER":        "users",
+	"USER_EVENTS": "user_events",
 }
 
 func initializeDatabase() {

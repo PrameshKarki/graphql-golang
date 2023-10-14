@@ -49,3 +49,25 @@ CREATE TABLE IF NOT EXISTS `user_events` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
   FOREIGN KEY (`event_id`) REFERENCES `events`(`id`)
 );
+
+
+SELECT
+    `id`,
+    `email`,
+    `phone_number`
+FROM `users`
+WHERE (
+        `email` = 'prameshkarkiss0656s17@gmail.com'
+    )
+
+SELECT
+    `users`.`id`,
+    `users`.`email`,
+    `users`.`phone_number`,
+    `user_events`.`role`,
+    `user_events`.`event_id`
+FROM `users`
+    INNER JOIN `user_events` ON (
+        `users`.`id` = `user_events`.`user_id`
+    )
+WHERE (`user_events`.`event_id` = '1')

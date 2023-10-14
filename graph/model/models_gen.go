@@ -33,9 +33,22 @@ type EventResponse struct {
 	ID *int `json:"id,omitempty"`
 }
 
+type Member struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phoneNumber"`
+	Role        string `json:"role"`
+}
+
 type MemberInput struct {
 	ID   string `json:"id"`
 	Role string `json:"role"`
+}
+
+type Response struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
 }
 
 type User struct {

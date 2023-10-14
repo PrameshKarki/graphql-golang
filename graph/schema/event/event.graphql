@@ -29,13 +29,21 @@ input AddMemberInput{
   members:[MemberInput]!
 }
 
+type Response{
+  success:Boolean!
+  message:String!
+}
+
 type Query {
   events: [Event!]!
   event(id: ID!): Event!
+  getMembersOfEvent(id:ID!):[Member!]!
 }
+
 type Mutation {
   createEvent(data: EventInput!): EventResponse!
   addMembersToEvent(id:ID!,data: AddMemberInput!): String!
-  deleteEvent(id: ID!): EventResponse!
+  removeMemberFromEvent(id:ID!,memberId:String!): Response!
+  deleteEvent(id: ID!): Response!
   updateEvent(id: ID!, data: EventInput!): EventResponse!
 }

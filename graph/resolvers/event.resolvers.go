@@ -35,10 +35,24 @@ func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, dat
 	}
 }
 
+// RemoveMemberFromEvent is the resolver for the removeMemberFromEvent field.
+func (r *mutationResolver) RemoveMemberFromEvent(ctx context.Context, id string, memberID string) (*model.Response, error) {
+	_, err := userEventService.RemoveUserFromEvent(id, memberID)
+	if err != nil {
+		return &model.Response{Success: false, Message: "Internal Server Error"}, err
+	} else {
+		return &model.Response{Success: true, Message: "Member Removed Successfully"}, nil
+	}
+}
+
 // DeleteEvent is the resolver for the deleteEvent field.
-func (r *mutationResolver) DeleteEvent(ctx context.Context, id string) (*model.EventResponse, error) {
-	eventId, err := eventService.DeleteEvent(id)
-	return &model.EventResponse{ID: &eventId}, err
+func (r *mutationResolver) DeleteEvent(ctx context.Context, id string) (*model.Response, error) {
+	_, err := eventService.DeleteEvent(id)
+	if err != nil {
+		return &model.Response{Success: false, Message: "Internal Server Error"}, err
+	} else {
+		return &model.Response{Success: true, Message: "Event Deleted Successfully"}, nil
+	}
 }
 
 // UpdateEvent is the resolver for the updateEvent field.
@@ -55,6 +69,11 @@ func (r *queryResolver) Events(ctx context.Context) ([]*model.Event, error) {
 // Event is the resolver for the event field.
 func (r *queryResolver) Event(ctx context.Context, id string) (*model.Event, error) {
 	return eventService.GetEvent(id)
+}
+
+// GetMembersOfEvent is the resolver for the getMembersOfEvent field.
+func (r *queryResolver) GetMembersOfEvent(ctx context.Context, id string) ([]*model.Member, error) {
+	return userEventService.GetMembersOfEvent(id)
 }
 
 // Mutation returns graph.MutationResolver implementation.

@@ -74,3 +74,36 @@ func RemoveUserFromEvent(eventId string, userId string) (int, error) {
 	}
 	return int(id), nil
 }
+
+func GetMembersOfEvent(eventId string) ([]*model.Member, error) {
+	db := configs.GetDatabaseConnection()
+
+	ds := configs.GetDialect().From(configs.TABLE_NAME["USER"]).InnerJoin(
+		goqu.T(configs.TABLE_NAME["USER_EVENTS"]),
+		goqu.On(goqu.Ex{
+			"users.id": goqu.I("user_events.user_id"),
+		}),
+	).Where(goqu.Ex{
+		"user_events.event_id": eventId,
+	}).Select(
+		"users.id",
+		"users.name",
+		"users.email",
+		"users.phone_number",
+		"user_events.role",
+	)
+
+	sql, _, _ := ds.ToSQL()
+	fmt.Println("SQL", sql)
+	rows, err := db.Query(sql)
+	if err != nil {
+		panic(err)
+	}
+	var members []*model.Member
+	for rows.Next() {
+		var member model.Member
+		rows.Scan(&member.ID, &member.Name, &member.Email, &member.PhoneNumber, &member.Role)
+		members = append(members, &member)
+	}
+	return members, nil
+}
