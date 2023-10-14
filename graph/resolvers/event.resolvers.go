@@ -89,6 +89,23 @@ func (r *mutationResolver) UpdateEvent(ctx context.Context, id string, data mode
 	return &model.EventResponse{ID: &eventId}, err
 }
 
+// UpdateSchedule is the resolver for the updateSchedule field.
+func (r *mutationResolver) UpdateSchedule(ctx context.Context, id string, data model.ScheduleUpdateInput) (*model.Response, error) {
+	allowedRoles := []string{"ADMIN", "OWNER"}
+	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	// Check if the user is admin or owner of the event, Only owner and admin can update schedule of the event
+	hasPermission := utils.Includes(allowedRoles, userRole)
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission update the schedule")
+	}
+	_, err := eventService.UpdateEventSchedule(id, data)
+	if err != nil {
+		return &model.Response{Success: false, Message: "Internal Server Error"}, err
+	} else {
+		return &model.Response{Success: true, Message: "Schedule Updated Successfully"}, nil
+	}
+}
+
 // Events is the resolver for the events field.
 func (r *queryResolver) Events(ctx context.Context) ([]*model.Event, error) {
 	return eventService.GetEvents()

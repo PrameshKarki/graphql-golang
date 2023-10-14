@@ -20,6 +20,12 @@ input EventInput {
   location: String!
 }
 
+input ScheduleUpdateInput{
+  startDate: String!
+  endDate: String!
+
+}
+
 input MemberInput{
   id:String!
   role:String!
@@ -46,4 +52,5 @@ type Mutation {
   removeMemberFromEvent(id:ID!,memberId:String!): Response!
   deleteEvent(id: ID!): Response!
   updateEvent(id: ID!, data: EventInput!): EventResponse!
+  updateSchedule(id: ID!, data: ScheduleUpdateInput!): Response!
 }

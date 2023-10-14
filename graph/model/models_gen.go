@@ -51,6 +51,11 @@ type Response struct {
 	Message string `json:"message"`
 }
 
+type ScheduleUpdateInput struct {
+	StartDate string `json:"startDate"`
+	EndDate   string `json:"endDate"`
+}
+
 type User struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`

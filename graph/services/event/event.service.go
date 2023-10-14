@@ -99,6 +99,27 @@ func DeleteEvent(eventId string) (int, error) {
 	return int(id), nil
 }
 
+func UpdateEventSchedule(eventId string, body model.ScheduleUpdateInput) (int, error) {
+	db := configs.GetDatabaseConnection()
+	ds := configs.GetDialect().Update(TABLE_NAME).
+		Set(goqu.Record{
+			"start_date": body.StartDate,
+			"end_date":   body.EndDate,
+		}).
+		Where(goqu.Ex{"id": eventId})
+
+	sql, _, _ := ds.ToSQL()
+	res, err := db.Exec(sql)
+	if err != nil {
+		panic(err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		panic(err)
+	}
+	return int(id), nil
+}
+
 func UpdateEvent(eventId string, body model.EventInput) (int, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Update(TABLE_NAME).
@@ -122,4 +143,3 @@ func UpdateEvent(eventId string, body model.EventInput) (int, error) {
 	}
 	return int(id), nil
 }
-
