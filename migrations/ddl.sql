@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `user_events` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   `event_id` int(11) NOT NULL,
-  `role` VARCHAR(255) NOT NULL,
+  `role` ENUM('ADMIN','OWNER','ATTENDEE','CONTRIBUTOR') NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -58,9 +58,9 @@ CREATE TABLE
         `cost` int(11) NOT NULL,
         `description` TEXT,
         `category` ENUM(
-            'venue',
-            'catering',
-            'decorations'
+            'VENUE',
+            'CATERING',
+            'DECORATION',
         ) NOT NULL,
         `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
         `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -68,20 +68,3 @@ CREATE TABLE
         FOREIGN KEY (`event_id`) REFERENCES `events`(`id`)
     );
 
-    SELECT
-    `expenses`.`ID`,
-    `expenses`.`item_name`,
-    `expenses`.`cost`,
-    `expenses`.`description`,
-    `expenses`.`category`,
-    `events`.`id`,
-    `events`.`name`,
-    `events`.`start_date`,
-    `events`.`end_date`,
-    `events`.`location`,
-    `events`.`description`
-FROM `expenses`
-    INNER JOIN `events` ON (
-        `expenses`.`event_id` = `events`.`id`
-    )
-WHERE (`expenses`.`id` = '1')
