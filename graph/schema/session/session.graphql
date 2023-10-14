@@ -1,0 +1,23 @@
+type Session{
+    id:ID!
+    name:String!
+    startTime:String!
+    endTime:String!
+    description:String
+}
+
+input SessionInput{
+    name:String!
+    startTime:String!
+    endTime:String!
+    description:String
+}
+
+extend type Query{
+    getEventSessions(id:ID!):[Session!]!
+}
+extend type Mutation{
+    createSession(input:SessionInput):Response!
+    updateSession(id:ID!,input:SessionInput):Response!
+    deleteSession(id:ID!):Response!
+}

@@ -85,6 +85,21 @@ type ScheduleUpdateInput struct {
 	EndDate   string `json:"endDate"`
 }
 
+type Session struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	StartTime   string  `json:"startTime"`
+	EndTime     string  `json:"endTime"`
+	Description *string `json:"description,omitempty"`
+}
+
+type SessionInput struct {
+	Name        string  `json:"name"`
+	StartTime   string  `json:"startTime"`
+	EndTime     string  `json:"endTime"`
+	Description *string `json:"description,omitempty"`
+}
+
 type User struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`

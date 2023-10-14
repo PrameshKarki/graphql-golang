@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS `events` (
   PRIMARY KEY (`id`)
 );
 
-DROP TABLE user_events;
 
 --  Create a table which holds the relationship between user and event
 CREATE TABLE IF NOT EXISTS `user_events` (
@@ -68,3 +67,17 @@ CREATE TABLE
         FOREIGN KEY (`event_id`) REFERENCES `events`(`id`)
     );
 
+
+CREATE TABLE IF NOT EXISTS `event_sessions`(
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `event_id` int(11) NOT NULL,
+    `name` varchar(255) NOT NULL,
+    `start_time` DATETIME NOT NULL,
+    `end_time` DATETIME NOT NULL,
+    `description` TEXT,
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`event_id`) REFERENCES `events`(`id`)
+);
+    
