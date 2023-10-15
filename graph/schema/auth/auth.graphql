@@ -1,8 +1,17 @@
+input LoginInput{
+    email:String!
+    password:String!
+}
+
 type AuthSchema{
     accessToken: String!
     id:String!
+    email:String!
 }
+
+
 extend type Mutation {
   userSignUp(data: UserInput!): AuthSchema!
+  userLogin(data: LoginInput!): AuthSchema!
 }
 

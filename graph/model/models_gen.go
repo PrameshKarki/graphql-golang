@@ -9,6 +9,7 @@ type AddMemberInput struct {
 type AuthSchema struct {
 	AccessToken string `json:"accessToken"`
 	ID          string `json:"id"`
+	Email       string `json:"email"`
 }
 
 type Event struct {
@@ -60,6 +61,11 @@ type ExpenseWithEvent struct {
 type ExpensesByCategory struct {
 	Category string  `json:"category"`
 	Total    float64 `json:"total"`
+}
+
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type Member struct {

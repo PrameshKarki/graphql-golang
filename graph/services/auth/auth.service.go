@@ -9,6 +9,8 @@ import (
 	"github.com/doug-martin/goqu/v9"
 )
 
+
+
 func UserSignUp(body model.UserInput) (int, error) {
 	db := configs.GetDatabaseConnection()
 	hashedPassword := utils.HashPassword((body.Password))
