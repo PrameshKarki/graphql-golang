@@ -100,14 +100,14 @@ type ComplexityRoot struct {
 		AddExpense            func(childComplexity int, eventID string, data model.ExpenseInput) int
 		AddMembersToEvent     func(childComplexity int, id string, data model.AddMemberInput) int
 		CreateEvent           func(childComplexity int, data model.EventInput) int
-		CreateSession         func(childComplexity int, input *model.SessionInput) int
+		CreateSession         func(childComplexity int, eventID string, data *model.SessionInput) int
 		DeleteEvent           func(childComplexity int, id string) int
 		DeleteExpense         func(childComplexity int, id string) int
 		DeleteSession         func(childComplexity int, id string) int
 		RemoveMemberFromEvent func(childComplexity int, id string, memberID string) int
 		UpdateEvent           func(childComplexity int, id string, data model.EventInput) int
 		UpdateSchedule        func(childComplexity int, id string, data model.ScheduleUpdateInput) int
-		UpdateSession         func(childComplexity int, id string, input *model.SessionInput) int
+		UpdateSession         func(childComplexity int, id string, data *model.SessionInput) int
 		UserSignUp            func(childComplexity int, data model.UserInput) int
 	}
 
@@ -159,8 +159,8 @@ type MutationResolver interface {
 	UserSignUp(ctx context.Context, data model.UserInput) (*model.AuthSchema, error)
 	AddExpense(ctx context.Context, eventID string, data model.ExpenseInput) (*model.Response, error)
 	DeleteExpense(ctx context.Context, id string) (*model.Response, error)
-	CreateSession(ctx context.Context, input *model.SessionInput) (*model.Response, error)
-	UpdateSession(ctx context.Context, id string, input *model.SessionInput) (*model.Response, error)
+	CreateSession(ctx context.Context, eventID string, data *model.SessionInput) (*model.Response, error)
+	UpdateSession(ctx context.Context, id string, data *model.SessionInput) (*model.Response, error)
 	DeleteSession(ctx context.Context, id string) (*model.Response, error)
 }
 type QueryResolver interface {
@@ -436,7 +436,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateSession(childComplexity, args["input"].(*model.SessionInput)), true
+		return e.complexity.Mutation.CreateSession(childComplexity, args["eventID"].(string), args["data"].(*model.SessionInput)), true
 
 	case "Mutation.deleteEvent":
 		if e.complexity.Mutation.DeleteEvent == nil {
@@ -520,7 +520,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateSession(childComplexity, args["id"].(string), args["input"].(*model.SessionInput)), true
+		return e.complexity.Mutation.UpdateSession(childComplexity, args["id"].(string), args["data"].(*model.SessionInput)), true
 
 	case "Mutation.userSignUp":
 		if e.complexity.Mutation.UserSignUp == nil {
@@ -924,15 +924,24 @@ func (ec *executionContext) field_Mutation_createEvent_args(ctx context.Context,
 func (ec *executionContext) field_Mutation_createSession_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.SessionInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalOSessionInput2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSessionInput(ctx, tmp)
+	var arg0 string
+	if tmp, ok := rawArgs["eventID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["input"] = arg0
+	args["eventID"] = arg0
+	var arg1 *model.SessionInput
+	if tmp, ok := rawArgs["data"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("data"))
+		arg1, err = ec.unmarshalOSessionInput2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSessionInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["data"] = arg1
 	return args, nil
 }
 
@@ -1066,14 +1075,14 @@ func (ec *executionContext) field_Mutation_updateSession_args(ctx context.Contex
 	}
 	args["id"] = arg0
 	var arg1 *model.SessionInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+	if tmp, ok := rawArgs["data"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("data"))
 		arg1, err = ec.unmarshalOSessionInput2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSessionInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["input"] = arg1
+	args["data"] = arg1
 	return args, nil
 }
 
@@ -3051,7 +3060,7 @@ func (ec *executionContext) _Mutation_createSession(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateSession(rctx, fc.Args["input"].(*model.SessionInput))
+		return ec.resolvers.Mutation().CreateSession(rctx, fc.Args["eventID"].(string), fc.Args["data"].(*model.SessionInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3112,7 +3121,7 @@ func (ec *executionContext) _Mutation_updateSession(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateSession(rctx, fc.Args["id"].(string), fc.Args["input"].(*model.SessionInput))
+		return ec.resolvers.Mutation().UpdateSession(rctx, fc.Args["id"].(string), fc.Args["data"].(*model.SessionInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

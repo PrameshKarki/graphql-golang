@@ -9,24 +9,69 @@ import (
 	"fmt"
 
 	"github.com/PrameshKarki/event-management-golang/graph/model"
+	services "github.com/PrameshKarki/event-management-golang/graph/services/session"
+	userEventService "github.com/PrameshKarki/event-management-golang/graph/services/userEvents"
+	"github.com/PrameshKarki/event-management-golang/utils"
 )
 
 // CreateSession is the resolver for the createSession field.
-func (r *mutationResolver) CreateSession(ctx context.Context, input *model.SessionInput) (*model.Response, error) {
-	panic(fmt.Errorf("not implemented: CreateSession - createSession"))
+func (r *mutationResolver) CreateSession(ctx context.Context, eventID string, data *model.SessionInput) (*model.Response, error) {
+	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
+	userRole, _ := userEventService.GetRoleOfUser("1", eventID)
+	hasPermission := utils.Includes(allowedRoles, userRole)
+
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission to add members to the event")
+	}
+	_, err := services.CreateSession(eventID, data)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return &model.Response{Success: false, Message: "internal server error"}, nil
+	} else {
+		return &model.Response{Success: true, Message: "session created successfully"}, nil
+	}
 }
 
 // UpdateSession is the resolver for the updateSession field.
-func (r *mutationResolver) UpdateSession(ctx context.Context, id string, input *model.SessionInput) (*model.Response, error) {
-	panic(fmt.Errorf("not implemented: UpdateSession - updateSession"))
+func (r *mutationResolver) UpdateSession(ctx context.Context, id string, data *model.SessionInput) (*model.Response, error) {
+	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
+	eventID, _ := services.GetEventIDFromSession(id)
+	userRole, _ := userEventService.GetRoleOfUser("1", eventID)
+	hasPermission := utils.Includes(allowedRoles, userRole)
+
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission to add members to the event")
+	}
+	_, err := services.DeleteSession(id)
+	if err != nil {
+		fmt.Println(err.Error())
+		return &model.Response{Success: false, Message: "internal server error"}, nil
+	} else {
+		return &model.Response{Success: true, Message: "session deleted successfully"}, nil
+	}
 }
 
 // DeleteSession is the resolver for the deleteSession field.
 func (r *mutationResolver) DeleteSession(ctx context.Context, id string) (*model.Response, error) {
-	panic(fmt.Errorf("not implemented: DeleteSession - deleteSession"))
+	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
+	eventID, _ := services.GetEventIDFromSession(id)
+	userRole, _ := userEventService.GetRoleOfUser("1", eventID)
+	hasPermission := utils.Includes(allowedRoles, userRole)
+
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission to add members to the event")
+	}
+	_, err := services.DeleteSession(id)
+	if err != nil {
+		fmt.Println(err.Error())
+		return &model.Response{Success: false, Message: "internal server error"}, nil
+	} else {
+		return &model.Response{Success: true, Message: "session deleted successfully"}, nil
+	}
 }
 
 // GetEventSessions is the resolver for the getEventSessions field.
 func (r *queryResolver) GetEventSessions(ctx context.Context, id string) ([]*model.Session, error) {
-	panic(fmt.Errorf("not implemented: GetEventSessions - getEventSessions"))
+	return services.GetEventSession(id)
 }

@@ -17,7 +17,7 @@ extend type Query{
     getEventSessions(id:ID!):[Session!]!
 }
 extend type Mutation{
-    createSession(input:SessionInput):Response!
-    updateSession(id:ID!,input:SessionInput):Response!
+    createSession(eventID:ID!,data:SessionInput):Response!
+    updateSession(id:ID!,data:SessionInput):Response!
     deleteSession(id:ID!):Response!
 }
