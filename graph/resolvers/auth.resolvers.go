@@ -31,6 +31,9 @@ func (r *mutationResolver) UserSignUp(ctx context.Context, data model.UserInput)
 
 // UserLogin is the resolver for the userLogin field.
 func (r *mutationResolver) UserLogin(ctx context.Context, data model.LoginInput) (*model.AuthSchema, error) {
+	if err := utils.ValidateInput(data); err != nil {
+		return nil, err
+	}
 	user := userService.FindOneByEmail(data.Email)
 	if user.ID == "" {
 		return nil, fmt.Errorf("invalid credentials")
