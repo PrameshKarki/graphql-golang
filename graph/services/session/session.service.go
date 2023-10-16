@@ -1,11 +1,10 @@
 package services
 
 import (
-	"fmt"
-
 	"github.com/PrameshKarki/event-management-golang/configs"
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/sirupsen/logrus"
 )
 
 func CreateSession(eventID string, body *model.SessionInput) (int, error) {
@@ -16,7 +15,7 @@ func CreateSession(eventID string, body *model.SessionInput) (int, error) {
 			goqu.Vals{body.Name, body.StartTime, body.EndTime, body.Description, eventID},
 		)
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)
@@ -36,7 +35,7 @@ func GetEventSession(eventID string) ([]*model.Session, error) {
 		"event_id": eventID,
 	})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	var sessions []*model.Session
 	rows, err := db.Query(sql)
 
@@ -71,7 +70,7 @@ func DeleteSession(id string) (int, error) {
 		"id": id,
 	})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)
@@ -89,7 +88,7 @@ func GetEventIDFromSession(id string) (string, error) {
 		"id": id,
 	})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	var eventID string
 	err := db.QueryRow(sql).Scan(&eventID)
 	if err != nil {
@@ -109,7 +108,7 @@ func UpdateSession(id string, body *model.SessionInput) (int, error) {
 		"id": id,
 	})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)

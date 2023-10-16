@@ -1,15 +1,12 @@
 package services
 
 import (
-	"fmt"
-
 	"github.com/PrameshKarki/event-management-golang/configs"
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	"github.com/PrameshKarki/event-management-golang/utils"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/sirupsen/logrus"
 )
-
-
 
 func UserSignUp(body model.UserInput) (int, error) {
 	db := configs.GetDatabaseConnection()
@@ -20,7 +17,7 @@ func UserSignUp(body model.UserInput) (int, error) {
 			goqu.Vals{body.Name, body.Email, body.PhoneNumber, hashedPassword},
 		)
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)

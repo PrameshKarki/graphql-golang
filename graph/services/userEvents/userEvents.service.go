@@ -7,6 +7,7 @@ import (
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
+	"github.com/sirupsen/logrus"
 )
 
 const TABLE_NAME = `user_events`
@@ -19,7 +20,7 @@ func CreateUserEvent(eventId string, userId string, role string) (int, error) {
 			goqu.Vals{userId, eventId, role},
 		)
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)
@@ -44,8 +45,7 @@ func AddMembersToEvent(event string, body model.AddMemberInput) (int, error) {
 		}
 	}
 	sql += ";"
-	fmt.Println(sql)
-
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)
@@ -63,7 +63,7 @@ func RemoveUserFromEvent(eventId string, userId string) (int, error) {
 	ds := configs.GetDialect().Delete(TABLE_NAME).
 		Where(goqu.Ex{"user_id": userId, "event_id": eventId})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)
@@ -94,7 +94,7 @@ func GetMembersOfEvent(eventId string) ([]*model.Member, error) {
 	)
 
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	rows, err := db.Query(sql)
 	if err != nil {
 		panic(err)
@@ -112,7 +112,7 @@ func GetRoleOfUser(userId string, eventId string) (string, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Select("role").From(TABLE_NAME).Where(goqu.Ex{"user_id": userId, "event_id": eventId})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	row := db.QueryRow(sql)
 	var role string
 	row.Scan(&role)

@@ -59,7 +59,6 @@ func (r *queryResolver) GetExpensesByCategory(ctx context.Context, eventID strin
 	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
 	userRole, _ := userEventService.GetRoleOfUser(userID, eventID)
-	fmt.Println(userRole)
 	hasPermission := utils.Includes(allowedRoles, userRole)
 	if !hasPermission {
 		return nil, fmt.Errorf("you don't have permission to view the expenses")

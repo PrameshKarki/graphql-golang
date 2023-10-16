@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 
@@ -12,11 +11,13 @@ import (
 	"github.com/PrameshKarki/event-management-golang/graph/middlewares/auth"
 	resolver "github.com/PrameshKarki/event-management-golang/graph/resolvers"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 const defaultPort = "8080"
 
 func main() {
+	initLogger()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
@@ -33,6 +34,11 @@ func main() {
 		srv.ServeHTTP(c.Writer, c.Request)
 	})
 
-	log.Printf("Connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	logrus.Info("connect to http://localhost:%s/ for GraphQL playground", port)
+	logrus.Fatal(http.ListenAndServe(":"+port, router))
+}
+
+func initLogger() {
+	logrus.SetFormatter(&logrus.TextFormatter{})
+	logrus.SetLevel(logrus.InfoLevel)
 }

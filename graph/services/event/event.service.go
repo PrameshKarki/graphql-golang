@@ -1,12 +1,11 @@
 package services
 
 import (
-	"fmt"
-
 	"github.com/PrameshKarki/event-management-golang/configs"
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
+	"github.com/sirupsen/logrus"
 )
 
 const TABLE_NAME = `events`
@@ -71,7 +70,6 @@ func CreateEvent(body model.EventInput, userId string) (int, error) {
 			goqu.Vals{body.Name, body.StartDate, body.EndDate, body.Location, body.Description},
 		)
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)
@@ -87,7 +85,7 @@ func DeleteEvent(eventId string) (int, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Delete(TABLE_NAME).Where(goqu.Ex{"id": eventId})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)

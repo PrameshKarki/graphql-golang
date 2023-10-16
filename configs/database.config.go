@@ -2,13 +2,13 @@ package configs
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"sync"
 
 	"github.com/PrameshKarki/event-management-golang/utils"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/go-sql-driver/mysql"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -45,7 +45,7 @@ func initializeDatabase() {
 	if pingErr != nil {
 		log.Fatal(pingErr)
 	}
-	fmt.Println("Database Connected!")
+	logrus.Info("Database Connected!")
 }
 
 func GetDatabaseConnection() *sql.DB {

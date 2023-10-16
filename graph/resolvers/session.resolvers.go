@@ -12,6 +12,7 @@ import (
 	services "github.com/PrameshKarki/event-management-golang/graph/services/session"
 	userEventService "github.com/PrameshKarki/event-management-golang/graph/services/userEvents"
 	"github.com/PrameshKarki/event-management-golang/utils"
+	"github.com/sirupsen/logrus"
 )
 
 // CreateSession is the resolver for the createSession field.
@@ -27,7 +28,7 @@ func (r *mutationResolver) CreateSession(ctx context.Context, eventID string, da
 	_, err := services.CreateSession(eventID, data)
 
 	if err != nil {
-		fmt.Println(err.Error())
+		logrus.Error(err.Error())
 		return &model.Response{Success: false, Message: "internal server error"}, nil
 	} else {
 		return &model.Response{Success: true, Message: "session created successfully"}, nil
@@ -47,7 +48,7 @@ func (r *mutationResolver) UpdateSession(ctx context.Context, id string, data *m
 	}
 	_, err := services.DeleteSession(id)
 	if err != nil {
-		fmt.Println(err.Error())
+		logrus.Error(err.Error())
 		return &model.Response{Success: false, Message: "internal server error"}, nil
 	} else {
 		return &model.Response{Success: true, Message: "session deleted successfully"}, nil
@@ -67,7 +68,7 @@ func (r *mutationResolver) DeleteSession(ctx context.Context, id string) (*model
 	}
 	_, err := services.DeleteSession(id)
 	if err != nil {
-		fmt.Println(err.Error())
+		logrus.Error(err.Error())
 		return &model.Response{Success: false, Message: "internal server error"}, nil
 	} else {
 		return &model.Response{Success: true, Message: "session deleted successfully"}, nil
