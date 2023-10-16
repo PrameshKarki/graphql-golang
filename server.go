@@ -21,7 +21,6 @@ func main() {
 	if port == "" {
 		port = defaultPort
 	}
-
 	router := gin.Default()
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{}}))
 	configs.GetDatabaseConnection()
@@ -37,6 +36,3 @@ func main() {
 	log.Printf("Connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
-
-// Write a gin middleware which set a value in a context
-

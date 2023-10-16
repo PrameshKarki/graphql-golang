@@ -44,6 +44,7 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	HasRole func(ctx context.Context, obj interface{}, next graphql.Resolver, role model.Role) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -857,7 +858,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema/auth/auth.graphql" "schema/event/event.graphql" "schema/expense/expense.graphql" "schema/session/session.graphql" "schema/user/user.graphql"
+//go:embed "schema/auth/auth.graphql" "schema/directive/directive.graphql" "schema/event/event.graphql" "schema/expense/expense.graphql" "schema/session/session.graphql" "schema/user/user.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -870,6 +871,7 @@ func sourceData(filename string) string {
 
 var sources = []*ast.Source{
 	{Name: "schema/auth/auth.graphql", Input: sourceData("schema/auth/auth.graphql"), BuiltIn: false},
+	{Name: "schema/directive/directive.graphql", Input: sourceData("schema/directive/directive.graphql"), BuiltIn: false},
 	{Name: "schema/event/event.graphql", Input: sourceData("schema/event/event.graphql"), BuiltIn: false},
 	{Name: "schema/expense/expense.graphql", Input: sourceData("schema/expense/expense.graphql"), BuiltIn: false},
 	{Name: "schema/session/session.graphql", Input: sourceData("schema/session/session.graphql"), BuiltIn: false},
@@ -880,6 +882,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) dir_hasRole_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.Role
+	if tmp, ok := rawArgs["role"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+		arg0, err = ec.unmarshalNRole2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐRole(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["role"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_addExpense_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -8442,6 +8459,16 @@ func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋPrameshKarkiᚋev
 		return graphql.Null
 	}
 	return ec._Response(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRole2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐRole(ctx context.Context, v interface{}) (model.Role, error) {
+	var res model.Role
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRole2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNScheduleUpdateInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐScheduleUpdateInput(ctx context.Context, v interface{}) (model.ScheduleUpdateInput, error) {
