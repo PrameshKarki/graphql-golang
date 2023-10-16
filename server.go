@@ -7,6 +7,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/PrameshKarki/event-management-golang/configs"
+	"github.com/PrameshKarki/event-management-golang/directives"
 	"github.com/PrameshKarki/event-management-golang/graph"
 	"github.com/PrameshKarki/event-management-golang/graph/middlewares/auth"
 	resolver "github.com/PrameshKarki/event-management-golang/graph/resolvers"
@@ -25,7 +26,6 @@ func main() {
 	if port == "" {
 		port = defaultPort
 	}
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{}}))
 	configs.GetDatabaseConnection()
 	router := gin.Default()
 	// Initialize middlewares
@@ -42,6 +42,10 @@ func main() {
 	router.GET("/", func(c *gin.Context) {
 		playground.Handler("GraphQL playground", "/query").ServeHTTP(c.Writer, c.Request)
 	})
+
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{}, Directives: graph.DirectiveRoot{
+		ShouldBeAuthenticated: directives.ShouldBeAuthenticated(),
+	}}))
 
 	router.POST("/query", func(c *gin.Context) {
 		srv.ServeHTTP(c.Writer, c.Request)

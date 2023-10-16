@@ -28,11 +28,11 @@ input ExpenseInput{
 }
 
 extend type Query {
-  getExpensesOfEvent(eventId: ID!): [Expense!]!
-  getExpense(id: ID!): ExpenseWithEvent!
-  getExpensesByCategory(eventId: ID!): [ExpensesByCategory!]!
+  getExpensesOfEvent(eventId: ID!): [Expense!]! @shouldBeAuthenticated
+  getExpense(id: ID!): ExpenseWithEvent! @shouldBeAuthenticated
+  getExpensesByCategory(eventId: ID!): [ExpensesByCategory!]! @shouldBeAuthenticated
 }
 extend type Mutation {
-  addExpense(eventId: ID!,data: ExpenseInput!): Response!
-  deleteExpense(id: ID!): Response!
+  addExpense(eventId: ID!,data: ExpenseInput!): Response! @shouldBeAuthenticated
+  deleteExpense(id: ID!): Response! @shouldBeAuthenticated
 }

@@ -43,14 +43,14 @@ type Response{
 type Query {
   events: [Event!]!
   event(id: ID!): Event!
-  getMembersOfEvent(id:ID!):[Member!]!
+  getMembersOfEvent(id:ID!):[Member!]! @shouldBeAuthenticated
 }
 
 type Mutation {
-  createEvent(data: EventInput!): EventResponse!
-  addMembersToEvent(id:ID!,data: AddMemberInput!): String!
-  removeMemberFromEvent(id:ID!,memberId:String!): Response!
-  deleteEvent(id: ID!): Response!
-  updateEvent(id: ID!, data: EventInput!): EventResponse!
-  updateSchedule(id: ID!, data: ScheduleUpdateInput!): Response!
+  createEvent(data: EventInput!): EventResponse! @shouldBeAuthenticated
+  addMembersToEvent(id:ID!,data: AddMemberInput!): String! @shouldBeAuthenticated
+  removeMemberFromEvent(id:ID!,memberId:String!): Response! @shouldBeAuthenticated
+  deleteEvent(id: ID!): Response! @shouldBeAuthenticated
+  updateEvent(id: ID!, data: EventInput!): EventResponse! @shouldBeAuthenticated
+  updateSchedule(id: ID!, data: ScheduleUpdateInput!): Response! @shouldBeAuthenticated
 }

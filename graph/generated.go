@@ -44,7 +44,7 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
-	HasRole func(ctx context.Context, obj interface{}, next graphql.Resolver, role model.Role) (res interface{}, err error)
+	ShouldBeAuthenticated func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -122,6 +122,7 @@ type ComplexityRoot struct {
 		GetExpensesByCategory func(childComplexity int, eventID string) int
 		GetExpensesOfEvent    func(childComplexity int, eventID string) int
 		GetMembersOfEvent     func(childComplexity int, id string) int
+		Ping                  func(childComplexity int) int
 		User                  func(childComplexity int, id string) int
 		Users                 func(childComplexity int) int
 	}
@@ -174,6 +175,7 @@ type QueryResolver interface {
 	GetExpensesOfEvent(ctx context.Context, eventID string) ([]*model.Expense, error)
 	GetExpense(ctx context.Context, id string) (*model.ExpenseWithEvent, error)
 	GetExpensesByCategory(ctx context.Context, eventID string) ([]*model.ExpensesByCategory, error)
+	Ping(ctx context.Context) (string, error)
 	GetEventSessions(ctx context.Context, id string) ([]*model.Session, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	User(ctx context.Context, id string) (*model.User, error)
@@ -636,6 +638,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetMembersOfEvent(childComplexity, args["id"].(string)), true
 
+	case "Query.ping":
+		if e.complexity.Query.Ping == nil {
+			break
+		}
+
+		return e.complexity.Query.Ping(childComplexity), true
+
 	case "Query.user":
 		if e.complexity.Query.User == nil {
 			break
@@ -858,7 +867,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema/auth/auth.graphql" "schema/directive/directive.graphql" "schema/event/event.graphql" "schema/expense/expense.graphql" "schema/session/session.graphql" "schema/user/user.graphql"
+//go:embed "schema/auth/auth.graphql" "schema/directive/directive.graphql" "schema/event/event.graphql" "schema/expense/expense.graphql" "schema/ping/ping.graphql" "schema/session/session.graphql" "schema/user/user.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -874,6 +883,7 @@ var sources = []*ast.Source{
 	{Name: "schema/directive/directive.graphql", Input: sourceData("schema/directive/directive.graphql"), BuiltIn: false},
 	{Name: "schema/event/event.graphql", Input: sourceData("schema/event/event.graphql"), BuiltIn: false},
 	{Name: "schema/expense/expense.graphql", Input: sourceData("schema/expense/expense.graphql"), BuiltIn: false},
+	{Name: "schema/ping/ping.graphql", Input: sourceData("schema/ping/ping.graphql"), BuiltIn: false},
 	{Name: "schema/session/session.graphql", Input: sourceData("schema/session/session.graphql"), BuiltIn: false},
 	{Name: "schema/user/user.graphql", Input: sourceData("schema/user/user.graphql"), BuiltIn: false},
 }
@@ -882,21 +892,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) dir_hasRole_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.Role
-	if tmp, ok := rawArgs["role"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
-		arg0, err = ec.unmarshalNRole2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐRole(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["role"] = arg0
-	return args, nil
-}
 
 func (ec *executionContext) field_Mutation_addExpense_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -2619,8 +2614,28 @@ func (ec *executionContext) _Mutation_createEvent(ctx context.Context, field gra
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateEvent(rctx, fc.Args["data"].(model.EventInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateEvent(rctx, fc.Args["data"].(model.EventInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.EventResponse); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.EventResponse`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2678,8 +2693,28 @@ func (ec *executionContext) _Mutation_addMembersToEvent(ctx context.Context, fie
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddMembersToEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.AddMemberInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().AddMembersToEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.AddMemberInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2733,8 +2768,28 @@ func (ec *executionContext) _Mutation_removeMemberFromEvent(ctx context.Context,
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().RemoveMemberFromEvent(rctx, fc.Args["id"].(string), fc.Args["memberId"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().RemoveMemberFromEvent(rctx, fc.Args["id"].(string), fc.Args["memberId"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2794,8 +2849,28 @@ func (ec *executionContext) _Mutation_deleteEvent(ctx context.Context, field gra
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteEvent(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteEvent(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2855,8 +2930,28 @@ func (ec *executionContext) _Mutation_updateEvent(ctx context.Context, field gra
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.EventInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.EventInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.EventResponse); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.EventResponse`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2914,8 +3009,28 @@ func (ec *executionContext) _Mutation_updateSchedule(ctx context.Context, field 
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateSchedule(rctx, fc.Args["id"].(string), fc.Args["data"].(model.ScheduleUpdateInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateSchedule(rctx, fc.Args["id"].(string), fc.Args["data"].(model.ScheduleUpdateInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3101,8 +3216,28 @@ func (ec *executionContext) _Mutation_addExpense(ctx context.Context, field grap
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddExpense(rctx, fc.Args["eventId"].(string), fc.Args["data"].(model.ExpenseInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().AddExpense(rctx, fc.Args["eventId"].(string), fc.Args["data"].(model.ExpenseInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3162,8 +3297,28 @@ func (ec *executionContext) _Mutation_deleteExpense(ctx context.Context, field g
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteExpense(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteExpense(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3223,8 +3378,28 @@ func (ec *executionContext) _Mutation_createSession(ctx context.Context, field g
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateSession(rctx, fc.Args["eventID"].(string), fc.Args["data"].(*model.SessionInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateSession(rctx, fc.Args["eventID"].(string), fc.Args["data"].(*model.SessionInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3284,8 +3459,28 @@ func (ec *executionContext) _Mutation_updateSession(ctx context.Context, field g
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateSession(rctx, fc.Args["id"].(string), fc.Args["data"].(*model.SessionInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateSession(rctx, fc.Args["id"].(string), fc.Args["data"].(*model.SessionInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3345,8 +3540,28 @@ func (ec *executionContext) _Mutation_deleteSession(ctx context.Context, field g
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteSession(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteSession(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3537,8 +3752,28 @@ func (ec *executionContext) _Query_getMembersOfEvent(ctx context.Context, field 
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetMembersOfEvent(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetMembersOfEvent(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Member); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.Member`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3604,8 +3839,28 @@ func (ec *executionContext) _Query_getExpensesOfEvent(ctx context.Context, field
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetExpensesOfEvent(rctx, fc.Args["eventId"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetExpensesOfEvent(rctx, fc.Args["eventId"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Expense); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.Expense`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3671,8 +3926,28 @@ func (ec *executionContext) _Query_getExpense(ctx context.Context, field graphql
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetExpense(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetExpense(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.ExpenseWithEvent); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.ExpenseWithEvent`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3740,8 +4015,28 @@ func (ec *executionContext) _Query_getExpensesByCategory(ctx context.Context, fi
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetExpensesByCategory(rctx, fc.Args["eventId"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetExpensesByCategory(rctx, fc.Args["eventId"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.ExpensesByCategory); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.ExpensesByCategory`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3788,6 +4083,50 @@ func (ec *executionContext) fieldContext_Query_getExpensesByCategory(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_ping(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_ping(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Ping(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_ping(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getEventSessions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_getEventSessions(ctx, field)
 	if err != nil {
@@ -3801,8 +4140,28 @@ func (ec *executionContext) _Query_getEventSessions(ctx context.Context, field g
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetEventSessions(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetEventSessions(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Session); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.Session`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3868,8 +4227,28 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Users(rctx)
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Users(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.User); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.User`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3924,8 +4303,28 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().User(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.ShouldBeAuthenticated == nil {
+				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			}
+			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.User); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.User`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7485,6 +7884,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "ping":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_ping(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "getEventSessions":
 			field := field
 
@@ -8459,16 +8880,6 @@ func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋPrameshKarkiᚋev
 		return graphql.Null
 	}
 	return ec._Response(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNRole2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐRole(ctx context.Context, v interface{}) (model.Role, error) {
-	var res model.Role
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNRole2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) unmarshalNScheduleUpdateInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐScheduleUpdateInput(ctx context.Context, v interface{}) (model.ScheduleUpdateInput, error) {

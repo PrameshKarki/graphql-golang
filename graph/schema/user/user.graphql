@@ -26,7 +26,7 @@ input UserInput {
 }
 
 extend type Query {
-  users: [User!]!
-  user(id: ID!): User!
+  users: [User!]! @shouldBeAuthenticated
+  user(id: ID!): User! @shouldBeAuthenticated
 }
 

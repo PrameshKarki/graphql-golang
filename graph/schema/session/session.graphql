@@ -14,10 +14,10 @@ input SessionInput{
 }
 
 extend type Query{
-    getEventSessions(id:ID!):[Session!]!
+    getEventSessions(id:ID!):[Session!]! @shouldBeAuthenticated
 }
 extend type Mutation{
-    createSession(eventID:ID!,data:SessionInput):Response!
-    updateSession(id:ID!,data:SessionInput):Response!
-    deleteSession(id:ID!):Response!
+    createSession(eventID:ID!,data:SessionInput):Response! @shouldBeAuthenticated
+    updateSession(id:ID!,data:SessionInput):Response! @shouldBeAuthenticated
+    deleteSession(id:ID!):Response! @shouldBeAuthenticated
 }
