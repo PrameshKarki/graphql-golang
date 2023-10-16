@@ -96,9 +96,13 @@ func GetEventID(expenseID string) (string, error) {
 }
 
 func SumOfExpenseByCategory(eventID string) ([]*model.ExpensesByCategory, error) {
+	fmt.Println(eventID)
 	db := configs.GetDatabaseConnection()
-	ds := configs.GetDialect().Select("category", goqu.SUM("cost").As("total_cost")).From(configs.TABLE_NAME["EXPENSE"]).Where(goqu.Ex{"event_id": eventID}).GroupBy("category")
-	sql, _, _ := ds.ToSQL()
+	ds := configs.GetDialect().From(configs.TABLE_NAME["EXPENSE"]).Select("category", goqu.SUM("cost").As("total_cost")).Where(goqu.Ex{"event_id": eventID}).GroupBy("category")
+	sql, _, err := ds.ToSQL()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	fmt.Println("SQL", sql)
 	rows, err := db.Query(sql)
 	if err != nil {

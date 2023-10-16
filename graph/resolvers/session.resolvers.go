@@ -16,8 +16,9 @@ import (
 
 // CreateSession is the resolver for the createSession field.
 func (r *mutationResolver) CreateSession(ctx context.Context, eventID string, data *model.SessionInput) (*model.Response, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
-	userRole, _ := userEventService.GetRoleOfUser("1", eventID)
+	userRole, _ := userEventService.GetRoleOfUser(userID, eventID)
 	hasPermission := utils.Includes(allowedRoles, userRole)
 
 	if !hasPermission {
@@ -35,9 +36,10 @@ func (r *mutationResolver) CreateSession(ctx context.Context, eventID string, da
 
 // UpdateSession is the resolver for the updateSession field.
 func (r *mutationResolver) UpdateSession(ctx context.Context, id string, data *model.SessionInput) (*model.Response, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
 	eventID, _ := services.GetEventIDFromSession(id)
-	userRole, _ := userEventService.GetRoleOfUser("1", eventID)
+	userRole, _ := userEventService.GetRoleOfUser(userID, eventID)
 	hasPermission := utils.Includes(allowedRoles, userRole)
 
 	if !hasPermission {
@@ -54,9 +56,10 @@ func (r *mutationResolver) UpdateSession(ctx context.Context, id string, data *m
 
 // DeleteSession is the resolver for the deleteSession field.
 func (r *mutationResolver) DeleteSession(ctx context.Context, id string) (*model.Response, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
 	eventID, _ := services.GetEventIDFromSession(id)
-	userRole, _ := userEventService.GetRoleOfUser("1", eventID)
+	userRole, _ := userEventService.GetRoleOfUser(userID, eventID)
 	hasPermission := utils.Includes(allowedRoles, userRole)
 
 	if !hasPermission {

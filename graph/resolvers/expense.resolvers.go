@@ -28,8 +28,9 @@ func (r *mutationResolver) AddExpense(ctx context.Context, eventID string, data 
 func (r *mutationResolver) DeleteExpense(ctx context.Context, id string) (*model.Response, error) {
 	// Only admin and owner can delete the expense
 	allowedRoles := []string{"ADMIN", "OWNER"}
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	associatedEvent, _ := expenseService.GetEventID(id)
-	userRole, _ := userEventService.GetRoleOfUser("1", associatedEvent)
+	userRole, _ := userEventService.GetRoleOfUser(userID, associatedEvent)
 	hasPermission := utils.Includes(allowedRoles, userRole)
 
 	if !hasPermission {
@@ -55,9 +56,10 @@ func (r *queryResolver) GetExpense(ctx context.Context, id string) (*model.Expen
 
 // GetExpensesByCategory is the resolver for the getExpensesByCategory field.
 func (r *queryResolver) GetExpensesByCategory(ctx context.Context, eventID string) ([]*model.ExpensesByCategory, error) {
-	userID := "1"
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
 	userRole, _ := userEventService.GetRoleOfUser(userID, eventID)
+	fmt.Println(userRole)
 	hasPermission := utils.Includes(allowedRoles, userRole)
 	if !hasPermission {
 		return nil, fmt.Errorf("you don't have permission to view the expenses")

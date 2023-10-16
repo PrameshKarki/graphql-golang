@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -32,20 +32,14 @@ func signToken(Data map[string]interface{}, secret string, ExpiredAt time.Durati
 	return token.SignedString([]byte(secret))
 }
 
-func VerifyToken(accessToken, secret string) (*jwt.Token, error) {
-	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
+func VerifyToken(accessToken, secret string) (*TokenMetadata, error) {
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(accessToken, &claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
 
-	if err != nil {
+	if err != nil || !token.Valid {
 		return nil, err
 	}
-	return token, nil
-}
-
-func DecodeToken(accessToken *jwt.Token) TokenMetadata {
-	var token TokenMetadata
-	stringify, _ := json.Marshal(&accessToken)
-	json.Unmarshal([]byte(stringify), &token)
-	return token
+	return &TokenMetadata{ID: fmt.Sprint(claims["id"]), Email: fmt.Sprint(claims["email"])}, nil
 }

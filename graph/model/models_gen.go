@@ -7,7 +7,7 @@ type AddMemberInput struct {
 }
 
 type AuthSchema struct {
-	AccessToken string `json:"accessToken"`
+	AccessToken string `json:"accessToken"` 
 	ID          string `json:"id"`
 	Email       string `json:"email"`
 }

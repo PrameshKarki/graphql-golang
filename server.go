@@ -23,10 +23,9 @@ func main() {
 	}
 
 	router := gin.Default()
-	router.Use(auth.Middleware())
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{}}))
 	configs.GetDatabaseConnection()
-
+	router.Use(auth.Middleware())
 	router.GET("/", func(c *gin.Context) {
 		playground.Handler("GraphQL playground", "/query").ServeHTTP(c.Writer, c.Request)
 	})
@@ -38,3 +37,6 @@ func main() {
 	log.Printf("Connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
+
+// Write a gin middleware which set a value in a context
+
