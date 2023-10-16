@@ -17,6 +17,9 @@ import (
 
 // CreateEvent is the resolver for the createEvent field.
 func (r *mutationResolver) CreateEvent(ctx context.Context, data model.EventInput) (*model.EventResponse, error) {
+	if err := utils.ValidateInput(data); err != nil {
+		return nil, err
+	}
 	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	id, err := eventService.CreateEvent(data, userID)
 	// Assign user to admin role

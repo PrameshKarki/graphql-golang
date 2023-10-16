@@ -13,22 +13,22 @@ type EventResponse {
 }
 
 input EventInput {
-  name: String!
-  startDate: String!
-  description: String
-  endDate: String!
-  location: String!
+  name: String! @goTag(key: "validate", value: "required")
+  startDate: String! @goTag(key: "validate", value: "required")
+  description: String 
+  endDate: String! @goTag(key: "validate", value: "required")
+  location: String! @goTag(key: "validate", value: "required")
 }
 
 input ScheduleUpdateInput{
-  startDate: String!
-  endDate: String!
+  startDate: String! @goTag(key: "validate", value: "required")
+  endDate: String! @goTag(key: "validate", value: "required")
 
 }
 
 input MemberInput{
-  id:String!
-  role:String!
+  id:String! @goTag(key: "validate", value: "required")
+  role:String! @goTag(key: "validate", value: "required")
 }
 
 input AddMemberInput{

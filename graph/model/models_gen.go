@@ -29,11 +29,11 @@ type Event struct {
 }
 
 type EventInput struct {
-	Name        string  `json:"name"`
-	StartDate   string  `json:"startDate"`
+	Name        string  `json:"name" validate:"required"`
+	StartDate   string  `json:"startDate" validate:"required"`
 	Description *string `json:"description,omitempty"`
-	EndDate     string  `json:"endDate"`
-	Location    string  `json:"location"`
+	EndDate     string  `json:"endDate" validate:"required"`
+	Location    string  `json:"location" validate:"required"`
 }
 
 type EventResponse struct {
@@ -83,8 +83,8 @@ type Member struct {
 }
 
 type MemberInput struct {
-	ID   string `json:"id"`
-	Role string `json:"role"`
+	ID   string `json:"id" validate:"required"`
+	Role string `json:"role" validate:"required"`
 }
 
 type Response struct {
@@ -93,8 +93,8 @@ type Response struct {
 }
 
 type ScheduleUpdateInput struct {
-	StartDate string `json:"startDate"`
-	EndDate   string `json:"endDate"`
+	StartDate string `json:"startDate" validate:"required"`
+	EndDate   string `json:"endDate" validate:"required"`
 }
 
 type Session struct {
