@@ -19,10 +19,10 @@ type UserResponse {
 }
 
 input UserInput {
-  name: String!
-  email: String!
-  phoneNumber: String!
-  password: String!
+  name: String!  @goTag(key: "validate", value: "required")
+  email: String! @goTag(key: "validate", value: "required,email")
+  phoneNumber: String!  @goTag(key: "validate", value: "required")
+  password: String! @goTag(key: "validate", value: "required")
 }
 
 extend type Query {

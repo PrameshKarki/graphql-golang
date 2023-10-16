@@ -16,6 +16,9 @@ import (
 
 // UserSignUp is the resolver for the userSignUp field.
 func (r *mutationResolver) UserSignUp(ctx context.Context, data model.UserInput) (*model.AuthSchema, error) {
+	if err := utils.ValidateInput(data); err != nil {
+		return nil, err
+	}
 	user := userService.FindOneByEmail(data.Email)
 	if user.ID != "" {
 		return nil, fmt.Errorf("User already exists")

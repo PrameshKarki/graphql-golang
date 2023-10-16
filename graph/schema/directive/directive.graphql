@@ -1,6 +1,12 @@
+directive @goTag(
+	key: String!
+	value: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
+
 directive @hasRole(role: Role!) on FIELD_DEFINITION
 
 enum Role {
     ADMIN
     USER
-}
+}   
