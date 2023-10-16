@@ -10,6 +10,9 @@ import (
 	"github.com/PrameshKarki/event-management-golang/graph"
 	"github.com/PrameshKarki/event-management-golang/graph/middlewares/auth"
 	resolver "github.com/PrameshKarki/event-management-golang/graph/resolvers"
+	helmet "github.com/danielkov/gin-helmet"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -22,10 +25,20 @@ func main() {
 	if port == "" {
 		port = defaultPort
 	}
-	router := gin.Default()
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{}}))
 	configs.GetDatabaseConnection()
+	router := gin.Default()
+	// Initialize middlewares
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:  []string{"*"},
+		AllowMethods:  []string{"*"},
+		AllowHeaders:  []string{"*"},
+		AllowWildcard: true,
+	}))
+	router.Use(helmet.Default())
+	router.Use(gzip.Gzip(gzip.BestCompression))
 	router.Use(auth.Middleware())
+
 	router.GET("/", func(c *gin.Context) {
 		playground.Handler("GraphQL playground", "/query").ServeHTTP(c.Writer, c.Request)
 	})

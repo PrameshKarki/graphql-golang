@@ -8,7 +8,10 @@ require (
 )
 
 require (
+	github.com/danielkov/gin-helmet v0.0.0-20171108135313-1387e224435e
 	github.com/doug-martin/goqu/v9 v9.18.0
+	github.com/gin-contrib/cors v1.4.0
+	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/validator/v10 v10.15.5
 	github.com/golang-jwt/jwt v3.2.2+incompatible
