@@ -17,7 +17,7 @@ func SignAccessToken(payload TokenMetadata) (string, error) {
 	return signToken(map[string]interface{}{
 		"id":    payload.ID,
 		"email": payload.Email,
-	}, tokenSecret, 15*time.Minute)
+	}, tokenSecret, 200*time.Minute)
 
 }
 

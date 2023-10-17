@@ -132,6 +132,12 @@ func (r *queryResolver) Events(ctx context.Context) ([]*model.Event, error) {
 	return eventService.GetEvents()
 }
 
+// MyEvents is the resolver for the myEvents field.
+func (r *queryResolver) MyEvents(ctx context.Context) ([]*model.Event, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	return eventService.MyEvents(userID)
+}
+
 // Event is the resolver for the event field.
 func (r *queryResolver) Event(ctx context.Context, id string) (*model.Event, error) {
 	return eventService.GetEvent(id)

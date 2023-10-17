@@ -44,5 +44,6 @@ func (r *mutationResolver) UserLogin(ctx context.Context, data model.LoginInput)
 	}
 	tokenMetaData := utils.TokenMetadata{ID: user.ID, Email: user.Email}
 	accessToken, _ := utils.SignAccessToken(tokenMetaData)
+
 	return &model.AuthSchema{ID: user.ID, AccessToken: accessToken, Email: data.Email}, nil
 }

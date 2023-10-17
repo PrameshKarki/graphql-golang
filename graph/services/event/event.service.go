@@ -19,7 +19,7 @@ type MemberInEvent struct {
 func GetEvents() ([]*model.Event, error) {
 	var events []*model.Event
 	db := configs.GetDatabaseConnection()
-	ds := configs.GetDialect().From(TABLE_NAME).Select("id", "name", "start_date", "end_date", "description")
+	ds := configs.GetDialect().From(TABLE_NAME).Select("id", "name", "start_date", "end_date", "description", "location")
 	sql, _, _ := ds.ToSQL()
 	rows, err := db.Query(sql)
 	if err != nil {
@@ -28,7 +28,7 @@ func GetEvents() ([]*model.Event, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var event model.Event
-		if err := rows.Scan(&event.ID, &event.Name, &event.StartDate, &event.EndDate, &event.Description); err != nil {
+		if err := rows.Scan(&event.ID, &event.Name, &event.StartDate, &event.EndDate, &event.Description, &event.Location); err != nil {
 			return nil, err
 		}
 		events = append(events, &event)
@@ -39,6 +39,48 @@ func GetEvents() ([]*model.Event, error) {
 	return events, nil
 
 }
+
+// Fetch all events which are created by the user
+func MyEvents(userID string) ([]*model.Event, error) {
+	db := configs.GetDatabaseConnection()
+	var events []*model.Event
+	ds := configs.GetDialect().From(configs.TABLE_NAME["EVENT"]).InnerJoin(
+		goqu.T(configs.TABLE_NAME["USER_EVENTS"]),
+		goqu.On(goqu.Ex{
+			"events.id": goqu.I("user_events.event_id"),
+		}),
+	).Where(goqu.Ex{
+		"user_events.user_id": userID,
+		"user_events.role":    "OWNER",
+	}).Select(
+		"events.id",
+		"events.name",
+		"events.start_date",
+		"events.end_date",
+		"events.description",
+		"events.location",
+	)
+	sql, _, _ := ds.ToSQL()
+	rows, err := db.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var event model.Event
+		if err := rows.Scan(&event.ID, &event.Name, &event.StartDate, &event.EndDate, &event.Description, &event.Location); err != nil {
+			return nil, err
+		}
+		events = append(events, &event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return events, nil
+
+}
+
 func GetEvent(id string) (*model.Event, error) {
 	var event model.Event
 	db := configs.GetDatabaseConnection()
