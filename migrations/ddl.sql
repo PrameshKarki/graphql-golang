@@ -30,7 +30,7 @@ CREATE TABLE
     IF NOT EXISTS `events` (
         -- In real database use UUID
         `id` int(11) NOT NULL AUTO_INCREMENT,
-        `name` varchar(255) NOT NULL,
+        `name` varchar(255) NOT NULL UNIQUE,
         `start_date` DATETIME NOT NULL,
         `end_date` DATETIME NOT NULL,
         `location` varchar(255) NOT NULL,

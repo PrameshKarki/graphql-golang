@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+
 	"github.com/PrameshKarki/event-management-golang/configs"
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	"github.com/doug-martin/goqu/v9"
@@ -84,7 +86,8 @@ func MyEvents(userID string) ([]*model.Event, error) {
 func GetEvent(id string) (*model.Event, error) {
 	var event model.Event
 	db := configs.GetDatabaseConnection()
-	ds := configs.GetDialect().From(TABLE_NAME).Select("id", "name", "start_date", "end_date", "location", "description").Where(goqu.Ex{"id": id})
+	ds := configs.GetDialect().From(TABLE_NAME).Select("id", "name", "start_date", "end_date", "location", "description").Where(
+		goqu.Ex{"id": id})
 	sql, _, _ := ds.ToSQL()
 	rows, err := db.Query(sql)
 
@@ -99,6 +102,9 @@ func GetEvent(id string) (*model.Event, error) {
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+	if event.ID == "" {
+		return nil, fmt.Errorf("event not found")
 	}
 	return &event, nil
 
