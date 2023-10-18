@@ -51,10 +51,16 @@ func MyEvents(userID string) ([]*model.Event, error) {
 		goqu.On(goqu.Ex{
 			"events.id": goqu.I("user_events.event_id"),
 		}),
-	).Where(goqu.Ex{
-		"user_events.user_id": userID,
-		"user_events.role":    "OWNER",
-	}).Select(
+	).Where(goqu.And(
+		goqu.Ex{
+			"user_events.user_id": userID,
+		}, goqu.Or(goqu.Ex{
+			"user_events.role": "OWNER",
+		}, goqu.Ex{
+			"user_events.role": "ADMIN",
+		},
+		),
+	)).Select(
 		"events.id",
 		"events.name",
 		"events.start_date",
@@ -63,6 +69,7 @@ func MyEvents(userID string) ([]*model.Event, error) {
 		"events.location",
 	)
 	sql, _, _ := ds.ToSQL()
+	fmt.Println(sql, "-----------")
 	rows, err := db.Query(sql)
 	if err != nil {
 		return nil, err
