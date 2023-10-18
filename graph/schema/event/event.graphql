@@ -46,6 +46,7 @@ type Query {
   getAccessibleEvents: [Event!]! @private
   myEvents: [Event!]! @private
   getMembersOfEvent(id:ID!):[Member!]! @private
+  getRole(eventID:ID!): String! @private
 }
 
 type Mutation {

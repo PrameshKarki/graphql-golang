@@ -154,6 +154,12 @@ func (r *queryResolver) GetMembersOfEvent(ctx context.Context, id string) ([]*mo
 	return userEventService.GetMembersOfEvent(id)
 }
 
+// GetRole is the resolver for the getRole field.
+func (r *queryResolver) GetRole(ctx context.Context, eventID string) (string, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	return userEventService.GetRoleOfUser(userID, eventID)
+}
+
 // Mutation returns graph.MutationResolver implementation.
 func (r *Resolver) Mutation() graph.MutationResolver { return &mutationResolver{r} }
 
@@ -162,3 +168,14 @@ func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *mutationResolver) GetRole(ctx context.Context, eventID string) (string, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	return userEventService.GetRoleOfUser(userID, eventID)
+}

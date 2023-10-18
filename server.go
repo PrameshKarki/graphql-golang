@@ -44,7 +44,7 @@ func main() {
 	})
 
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolver.Resolver{}, Directives: graph.DirectiveRoot{
-		ShouldBeAuthenticated: directives.ShouldBeAuthenticated(),
+		Private: directives.Private(),
 	}}))
 
 	router.POST("/query", func(c *gin.Context) {
