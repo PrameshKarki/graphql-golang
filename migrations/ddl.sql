@@ -71,7 +71,7 @@ CREATE TABLE
         `category` ENUM(
             'VENUE',
             'CATERING',
-            'DECORATION',
+            'DECORATION'
         ) NOT NULL,
         `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
         `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -84,8 +84,8 @@ CREATE TABLE
         `id` int(11) NOT NULL AUTO_INCREMENT,
         `event_id` int(11) NOT NULL,
         `name` varchar(255) NOT NULL,
-        `start_time` DATETIME NOT NULL,
-        `end_time` DATETIME NOT NULL,
+        `start_time` VARCHAR(255) NOT NULL,
+        `end_time` VARCHAR(255) NOT NULL,
         `description` TEXT,
         `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
         `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
