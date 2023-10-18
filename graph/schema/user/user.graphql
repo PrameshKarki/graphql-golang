@@ -5,6 +5,14 @@ type User{
     phoneNumber: String!
     password: String!
 }
+
+type PrivateUser{
+  id: ID!
+  name: String!
+ 
+}
+
+
 # Member is a user having a role in a event
 type Member{
   id: ID!
@@ -26,7 +34,7 @@ input UserInput {
 }
 
 extend type Query {
-  users: [User!]! @shouldBeAuthenticated
+  users: [PrivateUser!]! @shouldBeAuthenticated
   user(id: ID!): User! @shouldBeAuthenticated
 }
 

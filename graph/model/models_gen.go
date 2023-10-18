@@ -81,6 +81,11 @@ type MemberInput struct {
 	Role string `json:"role" validate:"required"`
 }
 
+type PrivateUser struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type Response struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`

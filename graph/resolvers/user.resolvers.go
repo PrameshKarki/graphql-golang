@@ -9,11 +9,12 @@ import (
 	"fmt"
 
 	"github.com/PrameshKarki/event-management-golang/graph/model"
+	userServices "github.com/PrameshKarki/event-management-golang/graph/services/user"
 )
 
 // Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	panic(fmt.Errorf("not implemented: Users - users"))
+func (r *queryResolver) Users(ctx context.Context) ([]*model.PrivateUser, error) {
+	return userServices.Find()
 }
 
 // User is the resolver for the user field.
