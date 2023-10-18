@@ -42,8 +42,9 @@ type Response{
 
 type Query {
   events: [Event!]!
-  myEvents: [Event!]! @shouldBeAuthenticated
   event(id: ID!): Event!
+  getAccessibleEvents: [Event!]! @shouldBeAuthenticated
+  myEvents: [Event!]! @shouldBeAuthenticated
   getMembersOfEvent(id:ID!):[Member!]! @shouldBeAuthenticated
 }
 

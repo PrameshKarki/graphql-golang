@@ -132,15 +132,21 @@ func (r *queryResolver) Events(ctx context.Context) ([]*model.Event, error) {
 	return eventService.GetEvents()
 }
 
+// Event is the resolver for the event field.
+func (r *queryResolver) Event(ctx context.Context, id string) (*model.Event, error) {
+	return eventService.GetEvent(id)
+}
+
+// GetAccessibleEvents is the resolver for the getAccessibleEvents field.
+func (r *queryResolver) GetAccessibleEvents(ctx context.Context) ([]*model.Event, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	return eventService.GetAccessibleEvents(userID)
+}
+
 // MyEvents is the resolver for the myEvents field.
 func (r *queryResolver) MyEvents(ctx context.Context) ([]*model.Event, error) {
 	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	return eventService.MyEvents(userID)
-}
-
-// Event is the resolver for the event field.
-func (r *queryResolver) Event(ctx context.Context, id string) (*model.Event, error) {
-	return eventService.GetEvent(id)
 }
 
 // GetMembersOfEvent is the resolver for the getMembersOfEvent field.

@@ -12,12 +12,6 @@ import (
 
 const TABLE_NAME = `events`
 
-type MemberInEvent struct {
-	user_id  string
-	role     string
-	event_id string
-}
-
 func GetEvents() ([]*model.Event, error) {
 	var events []*model.Event
 	db := configs.GetDatabaseConnection()
@@ -28,6 +22,46 @@ func GetEvents() ([]*model.Event, error) {
 		return nil, err
 	}
 	defer rows.Close()
+	for rows.Next() {
+		var event model.Event
+		if err := rows.Scan(&event.ID, &event.Name, &event.StartDate, &event.EndDate, &event.Description, &event.Location); err != nil {
+			return nil, err
+		}
+		events = append(events, &event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return events, nil
+
+}
+
+// Accessible events are those events which are created by the user or the user is invited to the event
+func GetAccessibleEvents(userID string) ([]*model.Event, error) {
+	db := configs.GetDatabaseConnection()
+	var events []*model.Event
+	ds := configs.GetDialect().From(configs.TABLE_NAME["EVENT"]).InnerJoin(
+		goqu.T(configs.TABLE_NAME["USER_EVENTS"]),
+		goqu.On(goqu.Ex{
+			"events.id": goqu.I("user_events.event_id"),
+		}),
+	).Where(goqu.Ex{
+		"user_events.user_id": userID,
+	}).Select(
+		"events.id",
+		"events.name",
+		"events.start_date",
+		"events.end_date",
+		"events.description",
+		"events.location",
+	)
+	sql, _, _ := ds.ToSQL()
+	rows, err := db.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var event model.Event
 		if err := rows.Scan(&event.ID, &event.Name, &event.StartDate, &event.EndDate, &event.Description, &event.Location); err != nil {
@@ -69,7 +103,6 @@ func MyEvents(userID string) ([]*model.Event, error) {
 		"events.location",
 	)
 	sql, _, _ := ds.ToSQL()
-	fmt.Println(sql, "-----------")
 	rows, err := db.Query(sql)
 	if err != nil {
 		return nil, err
