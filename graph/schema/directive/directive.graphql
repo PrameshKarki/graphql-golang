@@ -5,4 +5,4 @@ directive @goTag(
 
 
 
-directive @shouldBeAuthenticated on FIELD_DEFINITION
+directive @private on FIELD_DEFINITION

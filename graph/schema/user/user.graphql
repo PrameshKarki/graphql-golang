@@ -34,7 +34,7 @@ input UserInput {
 }
 
 extend type Query {
-  users: [PrivateUser!]! @shouldBeAuthenticated
-  user(id: ID!): User! @shouldBeAuthenticated
+  users: [PrivateUser!]! @private
+  user(id: ID!): User! @private
 }
 

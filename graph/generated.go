@@ -44,7 +44,7 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
-	ShouldBeAuthenticated func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
+	Private func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -2656,10 +2656,10 @@ func (ec *executionContext) _Mutation_createEvent(ctx context.Context, field gra
 			return ec.resolvers.Mutation().CreateEvent(rctx, fc.Args["data"].(model.EventInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -2735,10 +2735,10 @@ func (ec *executionContext) _Mutation_addMembersToEvent(ctx context.Context, fie
 			return ec.resolvers.Mutation().AddMembersToEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.AddMemberInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -2810,10 +2810,10 @@ func (ec *executionContext) _Mutation_removeMemberFromEvent(ctx context.Context,
 			return ec.resolvers.Mutation().RemoveMemberFromEvent(rctx, fc.Args["id"].(string), fc.Args["memberId"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -2891,10 +2891,10 @@ func (ec *executionContext) _Mutation_deleteEvent(ctx context.Context, field gra
 			return ec.resolvers.Mutation().DeleteEvent(rctx, fc.Args["id"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -2972,10 +2972,10 @@ func (ec *executionContext) _Mutation_updateEvent(ctx context.Context, field gra
 			return ec.resolvers.Mutation().UpdateEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.EventInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3051,10 +3051,10 @@ func (ec *executionContext) _Mutation_updateSchedule(ctx context.Context, field 
 			return ec.resolvers.Mutation().UpdateSchedule(rctx, fc.Args["id"].(string), fc.Args["data"].(model.ScheduleUpdateInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3258,10 +3258,10 @@ func (ec *executionContext) _Mutation_addExpense(ctx context.Context, field grap
 			return ec.resolvers.Mutation().AddExpense(rctx, fc.Args["eventId"].(string), fc.Args["data"].(model.ExpenseInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3339,10 +3339,10 @@ func (ec *executionContext) _Mutation_deleteExpense(ctx context.Context, field g
 			return ec.resolvers.Mutation().DeleteExpense(rctx, fc.Args["id"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3420,10 +3420,10 @@ func (ec *executionContext) _Mutation_createSession(ctx context.Context, field g
 			return ec.resolvers.Mutation().CreateSession(rctx, fc.Args["eventID"].(string), fc.Args["data"].(*model.SessionInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3501,10 +3501,10 @@ func (ec *executionContext) _Mutation_updateSession(ctx context.Context, field g
 			return ec.resolvers.Mutation().UpdateSession(rctx, fc.Args["id"].(string), fc.Args["data"].(*model.SessionInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3582,10 +3582,10 @@ func (ec *executionContext) _Mutation_deleteSession(ctx context.Context, field g
 			return ec.resolvers.Mutation().DeleteSession(rctx, fc.Args["id"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3882,10 +3882,10 @@ func (ec *executionContext) _Query_getAccessibleEvents(ctx context.Context, fiel
 			return ec.resolvers.Query().GetAccessibleEvents(rctx)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -3962,10 +3962,10 @@ func (ec *executionContext) _Query_myEvents(ctx context.Context, field graphql.C
 			return ec.resolvers.Query().MyEvents(rctx)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -4042,10 +4042,10 @@ func (ec *executionContext) _Query_getMembersOfEvent(ctx context.Context, field 
 			return ec.resolvers.Query().GetMembersOfEvent(rctx, fc.Args["id"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -4129,10 +4129,10 @@ func (ec *executionContext) _Query_getExpensesOfEvent(ctx context.Context, field
 			return ec.resolvers.Query().GetExpensesOfEvent(rctx, fc.Args["eventId"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -4216,10 +4216,10 @@ func (ec *executionContext) _Query_getExpense(ctx context.Context, field graphql
 			return ec.resolvers.Query().GetExpense(rctx, fc.Args["id"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -4305,10 +4305,10 @@ func (ec *executionContext) _Query_getExpensesByCategory(ctx context.Context, fi
 			return ec.resolvers.Query().GetExpensesByCategory(rctx, fc.Args["eventId"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -4430,10 +4430,10 @@ func (ec *executionContext) _Query_getEventSessions(ctx context.Context, field g
 			return ec.resolvers.Query().GetEventSessions(rctx, fc.Args["id"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -4517,10 +4517,10 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 			return ec.resolvers.Query().Users(rctx)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)
@@ -4587,10 +4587,10 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 			return ec.resolvers.Query().User(rctx, fc.Args["id"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.ShouldBeAuthenticated == nil {
-				return nil, errors.New("directive shouldBeAuthenticated is not implemented")
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
 			}
-			return ec.directives.ShouldBeAuthenticated(ctx, nil, directive0)
+			return ec.directives.Private(ctx, nil, directive0)
 		}
 
 		tmp, err := directive1(rctx)

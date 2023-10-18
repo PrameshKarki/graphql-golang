@@ -43,16 +43,16 @@ type Response{
 type Query {
   events: [Event!]!
   event(id: ID!): Event!
-  getAccessibleEvents: [Event!]! @shouldBeAuthenticated
-  myEvents: [Event!]! @shouldBeAuthenticated
-  getMembersOfEvent(id:ID!):[Member!]! @shouldBeAuthenticated
+  getAccessibleEvents: [Event!]! @private
+  myEvents: [Event!]! @private
+  getMembersOfEvent(id:ID!):[Member!]! @private
 }
 
 type Mutation {
-  createEvent(data: EventInput!): EventResponse! @shouldBeAuthenticated
-  addMembersToEvent(id:ID!,data: AddMemberInput!): String! @shouldBeAuthenticated
-  removeMemberFromEvent(id:ID!,memberId:String!): Response! @shouldBeAuthenticated
-  deleteEvent(id: ID!): Response! @shouldBeAuthenticated
-  updateEvent(id: ID!, data: EventInput!): EventResponse! @shouldBeAuthenticated
-  updateSchedule(id: ID!, data: ScheduleUpdateInput!): Response! @shouldBeAuthenticated
+  createEvent(data: EventInput!): EventResponse! @private
+  addMembersToEvent(id:ID!,data: AddMemberInput!): String! @private
+  removeMemberFromEvent(id:ID!,memberId:String!): Response! @private
+  deleteEvent(id: ID!): Response! @private
+  updateEvent(id: ID!, data: EventInput!): EventResponse! @private
+  updateSchedule(id: ID!, data: ScheduleUpdateInput!): Response! @private
 }
