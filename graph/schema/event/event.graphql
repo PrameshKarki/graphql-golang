@@ -52,6 +52,7 @@ type Query {
 type Mutation {
   createEvent(data: EventInput!): EventResponse! @private
   addMembersToEvent(id:ID!,data: AddMemberInput!): String! @private
+  updateMemberToEvent(eventID:ID!,data:MemberInput!): Response! @private
   removeMemberFromEvent(id:ID!,memberId:String!): Response! @private
   deleteEvent(id: ID!): Response! @private
   updateEvent(id: ID!, data: EventInput!): EventResponse! @private

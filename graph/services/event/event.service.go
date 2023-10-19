@@ -229,3 +229,28 @@ func UpdateEvent(eventId string, body model.EventInput) (int, error) {
 	}
 	return int(id), nil
 }
+
+func UpdateMemberToEvent(eventID string, body model.MemberInput) (int, error) {
+	db := configs.GetDatabaseConnection()
+	ds := configs.GetDialect().Update(configs.TABLE_NAME["USER_EVENTS"]).
+		Set(goqu.Record{
+			"role": body.Role,
+		}).
+		Where(goqu.And(goqu.Ex{
+			"event_id": eventID,
+		}, goqu.Ex{
+			"user_id": body.ID,
+		}))
+
+	sql, _, _ := ds.ToSQL()
+	res, err := db.Exec(sql)
+	if err != nil {
+		panic(err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		panic(err)
+	}
+	return int(id), nil
+
+}

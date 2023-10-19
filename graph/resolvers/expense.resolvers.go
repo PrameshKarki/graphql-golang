@@ -61,7 +61,6 @@ func (r *mutationResolver) UpdateExpense(ctx context.Context, id string, data mo
 	} else {
 		return &model.Response{Success: true, Message: "Expense updated successfully."}, nil
 	}
-
 }
 
 // GetExpensesOfEvent is the resolver for the getExpensesOfEvent field.

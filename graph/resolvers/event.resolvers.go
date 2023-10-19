@@ -58,6 +58,23 @@ func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, dat
 	}
 }
 
+// UpdateMemberToEvent is the resolver for the updateMemberToEvent field.
+func (r *mutationResolver) UpdateMemberToEvent(ctx context.Context, eventID string, data model.MemberInput) (*model.Response, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	userRole, _ := userEventService.GetRoleOfUser(userID, eventID)
+	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
+	hasPermission := utils.Includes(allowedRoles, userRole)
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission to update members")
+	}
+	_, err := eventService.UpdateMemberToEvent(eventID, data)
+	if err != nil {
+		return &model.Response{Success: false, Message: "Internal Server Error"}, err
+	} else {
+		return &model.Response{Success: true, Message: "Member updated Successfully"}, nil
+	}
+}
+
 // RemoveMemberFromEvent is the resolver for the removeMemberFromEvent field.
 func (r *mutationResolver) RemoveMemberFromEvent(ctx context.Context, id string, memberID string) (*model.Response, error) {
 	userID := ctx.Value("user").(*utils.TokenMetadata).ID
@@ -171,14 +188,3 @@ func (r *Resolver) Query() graph.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//     it when you're done.
-//   - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *mutationResolver) GetRole(ctx context.Context, eventID string) (string, error) {
-	userID := ctx.Value("user").(*utils.TokenMetadata).ID
-	return userEventService.GetRoleOfUser(userID, eventID)
-}
