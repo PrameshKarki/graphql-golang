@@ -1,8 +1,6 @@
 package services
 
 import (
-	"fmt"
-
 	"github.com/PrameshKarki/event-management-golang/configs"
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	"github.com/doug-martin/goqu/v9"
@@ -35,17 +33,17 @@ func CreateUserEvent(eventId string, userId string, role string) (int, error) {
 
 func AddMembersToEvent(event string, body model.AddMemberInput) (int, error) {
 	db := configs.GetDatabaseConnection()
-
-	sql := "INSERT INTO user_events(`user_id`,`event_id`,`role`) VALUES"
-	for index, member := range body.Members {
-		if index == len(body.Members)-1 {
-			sql += fmt.Sprintf("(%s,%s,'%s')", member.ID, event, member.Role)
-		} else {
-			sql += fmt.Sprintf("(%s,%s,'%s')", member.ID, event, member.Role) + ","
+	var records []goqu.Record
+	for _, member := range body.Members {
+		record := goqu.Record{
+			"user_id":  member.ID,
+			"event_id": event,
+			"role":     member.Role,
 		}
+		records = append(records, record)
 	}
-	sql += ";"
-	
+	ds := configs.GetDialect().Insert("user_events").Rows(records)
+	sql, _, _ := ds.ToSQL()
 	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {

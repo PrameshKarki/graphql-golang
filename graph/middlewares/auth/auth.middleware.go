@@ -17,7 +17,7 @@ func Middleware() gin.HandlerFunc {
 			token := strings.Trim(parts[1], " ")
 			data, err := utils.VerifyToken(token, utils.GoDotEnv("TOKEN_SECRET"))
 			if err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error(), "message": "Unauthorized!"})
+				c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error(), "message": "Invalid Token!"})
 				c.Abort()
 			} else {
 				ctx := context.WithValue(c.Request.Context(), "user", data)
