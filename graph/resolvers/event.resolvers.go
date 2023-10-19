@@ -61,6 +61,9 @@ func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, dat
 // RemoveMemberFromEvent is the resolver for the removeMemberFromEvent field.
 func (r *mutationResolver) RemoveMemberFromEvent(ctx context.Context, id string, memberID string) (*model.Response, error) {
 	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	if userID == memberID {
+		return nil, fmt.Errorf("you can't remove yourself from the event")
+	}
 	allowedRoles := []string{"ADMIN", "OWNER"}
 	userRole, _ := userEventService.GetRoleOfUser(userID, id)
 	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event

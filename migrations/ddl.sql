@@ -58,7 +58,7 @@ CREATE TABLE
         `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
         FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
-        FOREIGN KEY (`event_id`) REFERENCES `events`(`id`)
+        FOREIGN KEY (`event_id`) REFERENCES `events`(`id`) ON DELETE CASCADE
     );
 
 CREATE TABLE
@@ -76,7 +76,7 @@ CREATE TABLE
         `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
         `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
-        FOREIGN KEY (`event_id`) REFERENCES `events`(`id`)
+        FOREIGN KEY (`event_id`) REFERENCES `events`(`id`) ON DELETE CASCADE
     );
 
 CREATE TABLE
@@ -90,5 +90,5 @@ CREATE TABLE
         `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
         `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
-        FOREIGN KEY (`event_id`) REFERENCES `events`(`id`)
+        FOREIGN KEY (`event_id`) REFERENCES `events`(`id`) ON DELETE CASCADE
     );
