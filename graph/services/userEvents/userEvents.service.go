@@ -45,6 +45,7 @@ func AddMembersToEvent(event string, body model.AddMemberInput) (int, error) {
 		}
 	}
 	sql += ";"
+	
 	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
