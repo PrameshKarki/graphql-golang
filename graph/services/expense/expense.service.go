@@ -1,11 +1,10 @@
 package services
 
 import (
-	"fmt"
-
 	"github.com/PrameshKarki/event-management-golang/configs"
 	"github.com/PrameshKarki/event-management-golang/graph/model"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/sirupsen/logrus"
 )
 
 func CreateExpense(eventID string, body model.ExpenseInput) (int, error) {
@@ -16,7 +15,7 @@ func CreateExpense(eventID string, body model.ExpenseInput) (int, error) {
 			goqu.Vals{body.ItemName, body.Cost, body.Description, body.Category, eventID},
 		)
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)
@@ -28,11 +27,27 @@ func CreateExpense(eventID string, body model.ExpenseInput) (int, error) {
 	return int(id), nil
 }
 
+func UpdateExpense(id string, body model.ExpenseInput) (int, error) {
+	db := configs.GetDatabaseConnection()
+	ds := configs.GetDialect().Update(configs.TABLE_NAME["EXPENSE"]).Set(goqu.Record{"item_name": body.ItemName, "cost": body.Cost, "description": body.Description, "category": body.Category}).Where(goqu.Ex{"id": id})
+	sql, _, _ := ds.ToSQL()
+	logrus.Info("SQL", sql)
+	res, err := db.Exec(sql)
+	if err != nil {
+		panic(err)
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if err != nil {
+		panic(err)
+	}
+	return int(rowsAffected), nil
+}
+
 func GetExpensesOfEvent(eventID string) ([]*model.Expense, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Select("ID", "item_name", "cost", "description", "category").From(configs.TABLE_NAME["EXPENSE"]).Where(goqu.Ex{"event_id": eventID})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	rows, err := db.Query(sql)
 	if err != nil {
 		panic(err)
@@ -53,7 +68,7 @@ func RemoveExpense(expenseID string) (int, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Delete(configs.TABLE_NAME["EXPENSE"]).Where(goqu.Ex{"id": expenseID})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	res, err := db.Exec(sql)
 	if err != nil {
 		panic(err)
@@ -69,7 +84,7 @@ func GetExpense(expenseID string) (*model.ExpenseWithEvent, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Select("expenses.ID", "expenses.item_name", "expenses.cost", "expenses.description", "expenses.category", "events.id", "events.name", "events.start_date", "events.end_date", "events.location", "events.description").From(configs.TABLE_NAME["EXPENSE"]).Join(goqu.T(configs.TABLE_NAME["EVENT"]), goqu.On(goqu.Ex{"expenses.event_id": goqu.I("events.id")})).Where(goqu.Ex{"expenses.id": expenseID})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	row := db.QueryRow(sql)
 	var expense model.ExpenseWithEvent
 	var event model.Event
@@ -85,7 +100,7 @@ func GetEventID(expenseID string) (string, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Select("event_id").From(configs.TABLE_NAME["EXPENSE"]).Where(goqu.Ex{"id": expenseID})
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	row := db.QueryRow(sql)
 	var eventID string
 	err := row.Scan(&eventID)
@@ -97,9 +112,9 @@ func GetEventID(expenseID string) (string, error) {
 
 func SumOfExpenseByCategory(eventID string) ([]*model.ExpensesByCategory, error) {
 	db := configs.GetDatabaseConnection()
-	ds := configs.GetDialect().Select("category", goqu.SUM("cost").As("total_cost")).From(configs.TABLE_NAME["EXPENSE"]).Where(goqu.Ex{"event_id": eventID}).GroupBy("category")
+	ds := configs.GetDialect().From(configs.TABLE_NAME["EXPENSE"]).Select("category", goqu.SUM("cost").As("total_cost")).Where(goqu.Ex{"event_id": eventID}).GroupBy("category")
 	sql, _, _ := ds.ToSQL()
-	fmt.Println("SQL", sql)
+	logrus.Info("SQL", sql)
 	rows, err := db.Query(sql)
 	if err != nil {
 		panic(err)

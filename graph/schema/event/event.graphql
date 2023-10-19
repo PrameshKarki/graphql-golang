@@ -13,22 +13,22 @@ type EventResponse {
 }
 
 input EventInput {
-  name: String!
-  startDate: String!
-  description: String
-  endDate: String!
-  location: String!
+  name: String! @goTag(key: "validate", value: "required")
+  startDate: String! @goTag(key: "validate", value: "required")
+  description: String 
+  endDate: String! @goTag(key: "validate", value: "required")
+  location: String! @goTag(key: "validate", value: "required")
 }
 
 input ScheduleUpdateInput{
-  startDate: String!
-  endDate: String!
+  startDate: String! @goTag(key: "validate", value: "required")
+  endDate: String! @goTag(key: "validate", value: "required")
 
 }
 
 input MemberInput{
-  id:String!
-  role:String!
+  id:String! @goTag(key: "validate", value: "required")
+  role:String! @goTag(key: "validate", value: "required")
 }
 
 input AddMemberInput{
@@ -43,14 +43,18 @@ type Response{
 type Query {
   events: [Event!]!
   event(id: ID!): Event!
-  getMembersOfEvent(id:ID!):[Member!]!
+  getAccessibleEvents: [Event!]! @private
+  myEvents: [Event!]! @private
+  getMembersOfEvent(id:ID!):[Member!]! @private
+  getRole(eventID:ID!): String! @private
 }
 
 type Mutation {
-  createEvent(data: EventInput!): EventResponse!
-  addMembersToEvent(id:ID!,data: AddMemberInput!): String!
-  removeMemberFromEvent(id:ID!,memberId:String!): Response!
-  deleteEvent(id: ID!): Response!
-  updateEvent(id: ID!, data: EventInput!): EventResponse!
-  updateSchedule(id: ID!, data: ScheduleUpdateInput!): Response!
+  createEvent(data: EventInput!): EventResponse! @private
+  addMembersToEvent(id:ID!,data: AddMemberInput!): String! @private
+  updateMemberToEvent(eventID:ID!,data:MemberInput!): Response! @private
+  removeMemberFromEvent(id:ID!,memberId:String!): Response! @private
+  deleteEvent(id: ID!): Response! @private
+  updateEvent(id: ID!, data: EventInput!): EventResponse! @private
+  updateSchedule(id: ID!, data: ScheduleUpdateInput!): Response! @private
 }

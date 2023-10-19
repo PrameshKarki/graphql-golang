@@ -17,16 +17,21 @@ import (
 
 // CreateEvent is the resolver for the createEvent field.
 func (r *mutationResolver) CreateEvent(ctx context.Context, data model.EventInput) (*model.EventResponse, error) {
-	id, err := eventService.CreateEvent(data, "1")
+	if err := utils.ValidateInput(data); err != nil {
+		return nil, err
+	}
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	id, err := eventService.CreateEvent(data, userID)
 	// Assign user to admin role
-	userEventService.CreateUserEvent(fmt.Sprint(id), "1", "OWNER")
+	userEventService.CreateUserEvent(fmt.Sprint(id), userID, "OWNER")
 	return &model.EventResponse{ID: &id}, err
 }
 
 // AddMembersToEvent is the resolver for the addMembersToEvent field.
 func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, data model.AddMemberInput) (string, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
-	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	userRole, _ := userEventService.GetRoleOfUser(userID, id)
 	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
 	hasPermission := utils.Includes(allowedRoles, userRole)
 
@@ -53,10 +58,35 @@ func (r *mutationResolver) AddMembersToEvent(ctx context.Context, id string, dat
 	}
 }
 
+// UpdateMemberToEvent is the resolver for the updateMemberToEvent field.
+func (r *mutationResolver) UpdateMemberToEvent(ctx context.Context, eventID string, data model.MemberInput) (*model.Response, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	userRole, _ := userEventService.GetRoleOfUser(userID, eventID)
+	allowedRoles := []string{"ADMIN", "OWNER", "CONTRIBUTOR"}
+	hasPermission := utils.Includes(allowedRoles, userRole)
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission to update members")
+	}
+	_, err := eventService.UpdateMemberToEvent(eventID, data)
+	if err != nil {
+		return &model.Response{Success: false, Message: "Internal Server Error"}, err
+	} else {
+		return &model.Response{Success: true, Message: "Member updated Successfully"}, nil
+	}
+}
+
 // RemoveMemberFromEvent is the resolver for the removeMemberFromEvent field.
 func (r *mutationResolver) RemoveMemberFromEvent(ctx context.Context, id string, memberID string) (*model.Response, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	if userID == memberID {
+		return nil, fmt.Errorf("you can't remove yourself from the event")
+	}
 	allowedRoles := []string{"ADMIN", "OWNER"}
-	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	userRole, _ := userEventService.GetRoleOfUser(userID, id)
+	userToBeDeletedRole, _ := userEventService.GetRoleOfUser(memberID, id)
+	if userToBeDeletedRole == "OWNER" {
+		return nil, fmt.Errorf("owner of the event cannot be removed")
+	}
 	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
 	hasPermission := utils.Includes(allowedRoles, userRole)
 
@@ -73,7 +103,8 @@ func (r *mutationResolver) RemoveMemberFromEvent(ctx context.Context, id string,
 
 // DeleteEvent is the resolver for the deleteEvent field.
 func (r *mutationResolver) DeleteEvent(ctx context.Context, id string) (*model.Response, error) {
-	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	userRole, _ := userEventService.GetRoleOfUser(userID, id)
 	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
 	hasPermission := userRole == "OWNER"
 
@@ -90,7 +121,8 @@ func (r *mutationResolver) DeleteEvent(ctx context.Context, id string) (*model.R
 
 // UpdateEvent is the resolver for the updateEvent field.
 func (r *mutationResolver) UpdateEvent(ctx context.Context, id string, data model.EventInput) (*model.EventResponse, error) {
-	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	userRole, _ := userEventService.GetRoleOfUser(userID, id)
 	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
 	hasPermission := userRole == "OWNER"
 
@@ -103,8 +135,9 @@ func (r *mutationResolver) UpdateEvent(ctx context.Context, id string, data mode
 
 // UpdateSchedule is the resolver for the updateSchedule field.
 func (r *mutationResolver) UpdateSchedule(ctx context.Context, id string, data model.ScheduleUpdateInput) (*model.Response, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
 	allowedRoles := []string{"ADMIN", "OWNER"}
-	userRole, _ := userEventService.GetRoleOfUser("1", id)
+	userRole, _ := userEventService.GetRoleOfUser(userID, id)
 	// Check if the user is admin or owner of the event, Only owner and admin can update schedule of the event
 	hasPermission := utils.Includes(allowedRoles, userRole)
 	if !hasPermission {
@@ -128,9 +161,27 @@ func (r *queryResolver) Event(ctx context.Context, id string) (*model.Event, err
 	return eventService.GetEvent(id)
 }
 
+// GetAccessibleEvents is the resolver for the getAccessibleEvents field.
+func (r *queryResolver) GetAccessibleEvents(ctx context.Context) ([]*model.Event, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	return eventService.GetAccessibleEvents(userID)
+}
+
+// MyEvents is the resolver for the myEvents field.
+func (r *queryResolver) MyEvents(ctx context.Context) ([]*model.Event, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	return eventService.MyEvents(userID)
+}
+
 // GetMembersOfEvent is the resolver for the getMembersOfEvent field.
 func (r *queryResolver) GetMembersOfEvent(ctx context.Context, id string) ([]*model.Member, error) {
 	return userEventService.GetMembersOfEvent(id)
+}
+
+// GetRole is the resolver for the getRole field.
+func (r *queryResolver) GetRole(ctx context.Context, eventID string) (string, error) {
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	return userEventService.GetRoleOfUser(userID, eventID)
 }
 
 // Mutation returns graph.MutationResolver implementation.

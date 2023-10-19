@@ -9,6 +9,7 @@ type AddMemberInput struct {
 type AuthSchema struct {
 	AccessToken string `json:"accessToken"`
 	ID          string `json:"id"`
+	Email       string `json:"email"`
 }
 
 type Event struct {
@@ -22,11 +23,11 @@ type Event struct {
 }
 
 type EventInput struct {
-	Name        string  `json:"name"`
-	StartDate   string  `json:"startDate"`
+	Name        string  `json:"name" validate:"required"`
+	StartDate   string  `json:"startDate" validate:"required"`
 	Description *string `json:"description,omitempty"`
-	EndDate     string  `json:"endDate"`
-	Location    string  `json:"location"`
+	EndDate     string  `json:"endDate" validate:"required"`
+	Location    string  `json:"location" validate:"required"`
 }
 
 type EventResponse struct {
@@ -62,6 +63,11 @@ type ExpensesByCategory struct {
 	Total    float64 `json:"total"`
 }
 
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type Member struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
@@ -71,8 +77,13 @@ type Member struct {
 }
 
 type MemberInput struct {
+	ID   string `json:"id" validate:"required"`
+	Role string `json:"role" validate:"required"`
+}
+
+type PrivateUser struct {
 	ID   string `json:"id"`
-	Role string `json:"role"`
+	Name string `json:"name"`
 }
 
 type Response struct {
@@ -81,8 +92,23 @@ type Response struct {
 }
 
 type ScheduleUpdateInput struct {
-	StartDate string `json:"startDate"`
-	EndDate   string `json:"endDate"`
+	StartDate string `json:"startDate" validate:"required"`
+	EndDate   string `json:"endDate" validate:"required"`
+}
+
+type Session struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	StartTime   string  `json:"startTime"`
+	EndTime     string  `json:"endTime"`
+	Description *string `json:"description,omitempty"`
+}
+
+type SessionInput struct {
+	Name        string  `json:"name"`
+	StartTime   string  `json:"startTime"`
+	EndTime     string  `json:"endTime"`
+	Description *string `json:"description,omitempty"`
 }
 
 type User struct {
@@ -94,10 +120,10 @@ type User struct {
 }
 
 type UserInput struct {
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	PhoneNumber string `json:"phoneNumber"`
-	Password    string `json:"password"`
+	Name        string `json:"name" validate:"required"`
+	Email       string `json:"email" validate:"required,email"`
+	PhoneNumber string `json:"phoneNumber" validate:"required"`
+	Password    string `json:"password" validate:"required"`
 }
 
 type UserResponse struct {

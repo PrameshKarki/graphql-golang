@@ -8,8 +8,12 @@ require (
 )
 
 require (
+	github.com/danielkov/gin-helmet v0.0.0-20171108135313-1387e224435e
 	github.com/doug-martin/goqu/v9 v9.18.0
+	github.com/gin-contrib/cors v1.4.0
+	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-gonic/gin v1.9.1
+	github.com/go-playground/validator/v10 v10.15.5
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.14.0
@@ -23,7 +27,6 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.15.5 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect

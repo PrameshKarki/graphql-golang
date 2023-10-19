@@ -44,11 +44,13 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	Private func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
 	AuthSchema struct {
 		AccessToken func(childComplexity int) int
+		Email       func(childComplexity int) int
 		ID          func(childComplexity int) int
 	}
 
@@ -100,21 +102,37 @@ type ComplexityRoot struct {
 		AddExpense            func(childComplexity int, eventID string, data model.ExpenseInput) int
 		AddMembersToEvent     func(childComplexity int, id string, data model.AddMemberInput) int
 		CreateEvent           func(childComplexity int, data model.EventInput) int
+		CreateSession         func(childComplexity int, eventID string, data *model.SessionInput) int
 		DeleteEvent           func(childComplexity int, id string) int
 		DeleteExpense         func(childComplexity int, id string) int
+		DeleteSession         func(childComplexity int, id string) int
 		RemoveMemberFromEvent func(childComplexity int, id string, memberID string) int
 		UpdateEvent           func(childComplexity int, id string, data model.EventInput) int
+		UpdateExpense         func(childComplexity int, id string, data model.ExpenseInput) int
+		UpdateMemberToEvent   func(childComplexity int, eventID string, data model.MemberInput) int
 		UpdateSchedule        func(childComplexity int, id string, data model.ScheduleUpdateInput) int
+		UpdateSession         func(childComplexity int, id string, data *model.SessionInput) int
+		UserLogin             func(childComplexity int, data model.LoginInput) int
 		UserSignUp            func(childComplexity int, data model.UserInput) int
+	}
+
+	PrivateUser struct {
+		ID   func(childComplexity int) int
+		Name func(childComplexity int) int
 	}
 
 	Query struct {
 		Event                 func(childComplexity int, id string) int
 		Events                func(childComplexity int) int
+		GetAccessibleEvents   func(childComplexity int) int
+		GetEventSessions      func(childComplexity int, id string) int
 		GetExpense            func(childComplexity int, id string) int
 		GetExpensesByCategory func(childComplexity int, eventID string) int
 		GetExpensesOfEvent    func(childComplexity int, eventID string) int
 		GetMembersOfEvent     func(childComplexity int, id string) int
+		GetRole               func(childComplexity int, eventID string) int
+		MyEvents              func(childComplexity int) int
+		Ping                  func(childComplexity int) int
 		User                  func(childComplexity int, id string) int
 		Users                 func(childComplexity int) int
 	}
@@ -122,6 +140,14 @@ type ComplexityRoot struct {
 	Response struct {
 		Message func(childComplexity int) int
 		Success func(childComplexity int) int
+	}
+
+	Session struct {
+		Description func(childComplexity int) int
+		EndTime     func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Name        func(childComplexity int) int
+		StartTime   func(childComplexity int) int
 	}
 
 	User struct {
@@ -140,22 +166,33 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreateEvent(ctx context.Context, data model.EventInput) (*model.EventResponse, error)
 	AddMembersToEvent(ctx context.Context, id string, data model.AddMemberInput) (string, error)
+	UpdateMemberToEvent(ctx context.Context, eventID string, data model.MemberInput) (*model.Response, error)
 	RemoveMemberFromEvent(ctx context.Context, id string, memberID string) (*model.Response, error)
 	DeleteEvent(ctx context.Context, id string) (*model.Response, error)
 	UpdateEvent(ctx context.Context, id string, data model.EventInput) (*model.EventResponse, error)
 	UpdateSchedule(ctx context.Context, id string, data model.ScheduleUpdateInput) (*model.Response, error)
 	UserSignUp(ctx context.Context, data model.UserInput) (*model.AuthSchema, error)
+	UserLogin(ctx context.Context, data model.LoginInput) (*model.AuthSchema, error)
 	AddExpense(ctx context.Context, eventID string, data model.ExpenseInput) (*model.Response, error)
 	DeleteExpense(ctx context.Context, id string) (*model.Response, error)
+	UpdateExpense(ctx context.Context, id string, data model.ExpenseInput) (*model.Response, error)
+	CreateSession(ctx context.Context, eventID string, data *model.SessionInput) (*model.Response, error)
+	UpdateSession(ctx context.Context, id string, data *model.SessionInput) (*model.Response, error)
+	DeleteSession(ctx context.Context, id string) (*model.Response, error)
 }
 type QueryResolver interface {
 	Events(ctx context.Context) ([]*model.Event, error)
 	Event(ctx context.Context, id string) (*model.Event, error)
+	GetAccessibleEvents(ctx context.Context) ([]*model.Event, error)
+	MyEvents(ctx context.Context) ([]*model.Event, error)
 	GetMembersOfEvent(ctx context.Context, id string) ([]*model.Member, error)
+	GetRole(ctx context.Context, eventID string) (string, error)
 	GetExpensesOfEvent(ctx context.Context, eventID string) ([]*model.Expense, error)
 	GetExpense(ctx context.Context, id string) (*model.ExpenseWithEvent, error)
 	GetExpensesByCategory(ctx context.Context, eventID string) ([]*model.ExpensesByCategory, error)
-	Users(ctx context.Context) ([]*model.User, error)
+	Ping(ctx context.Context) (string, error)
+	GetEventSessions(ctx context.Context, id string) ([]*model.Session, error)
+	Users(ctx context.Context) ([]*model.PrivateUser, error)
 	User(ctx context.Context, id string) (*model.User, error)
 }
 
@@ -184,6 +221,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthSchema.AccessToken(childComplexity), true
+
+	case "AuthSchema.email":
+		if e.complexity.AuthSchema.Email == nil {
+			break
+		}
+
+		return e.complexity.AuthSchema.Email(childComplexity), true
 
 	case "AuthSchema.id":
 		if e.complexity.AuthSchema.ID == nil {
@@ -410,6 +454,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateEvent(childComplexity, args["data"].(model.EventInput)), true
 
+	case "Mutation.createSession":
+		if e.complexity.Mutation.CreateSession == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createSession_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateSession(childComplexity, args["eventID"].(string), args["data"].(*model.SessionInput)), true
+
 	case "Mutation.deleteEvent":
 		if e.complexity.Mutation.DeleteEvent == nil {
 			break
@@ -433,6 +489,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteExpense(childComplexity, args["id"].(string)), true
+
+	case "Mutation.deleteSession":
+		if e.complexity.Mutation.DeleteSession == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteSession_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteSession(childComplexity, args["id"].(string)), true
 
 	case "Mutation.removeMemberFromEvent":
 		if e.complexity.Mutation.RemoveMemberFromEvent == nil {
@@ -458,6 +526,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateEvent(childComplexity, args["id"].(string), args["data"].(model.EventInput)), true
 
+	case "Mutation.updateExpense":
+		if e.complexity.Mutation.UpdateExpense == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateExpense_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateExpense(childComplexity, args["id"].(string), args["data"].(model.ExpenseInput)), true
+
+	case "Mutation.updateMemberToEvent":
+		if e.complexity.Mutation.UpdateMemberToEvent == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateMemberToEvent_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateMemberToEvent(childComplexity, args["eventID"].(string), args["data"].(model.MemberInput)), true
+
 	case "Mutation.updateSchedule":
 		if e.complexity.Mutation.UpdateSchedule == nil {
 			break
@@ -470,6 +562,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateSchedule(childComplexity, args["id"].(string), args["data"].(model.ScheduleUpdateInput)), true
 
+	case "Mutation.updateSession":
+		if e.complexity.Mutation.UpdateSession == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateSession_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateSession(childComplexity, args["id"].(string), args["data"].(*model.SessionInput)), true
+
+	case "Mutation.userLogin":
+		if e.complexity.Mutation.UserLogin == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_userLogin_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UserLogin(childComplexity, args["data"].(model.LoginInput)), true
+
 	case "Mutation.userSignUp":
 		if e.complexity.Mutation.UserSignUp == nil {
 			break
@@ -481,6 +597,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UserSignUp(childComplexity, args["data"].(model.UserInput)), true
+
+	case "PrivateUser.id":
+		if e.complexity.PrivateUser.ID == nil {
+			break
+		}
+
+		return e.complexity.PrivateUser.ID(childComplexity), true
+
+	case "PrivateUser.name":
+		if e.complexity.PrivateUser.Name == nil {
+			break
+		}
+
+		return e.complexity.PrivateUser.Name(childComplexity), true
 
 	case "Query.event":
 		if e.complexity.Query.Event == nil {
@@ -500,6 +630,25 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Events(childComplexity), true
+
+	case "Query.getAccessibleEvents":
+		if e.complexity.Query.GetAccessibleEvents == nil {
+			break
+		}
+
+		return e.complexity.Query.GetAccessibleEvents(childComplexity), true
+
+	case "Query.getEventSessions":
+		if e.complexity.Query.GetEventSessions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getEventSessions_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetEventSessions(childComplexity, args["id"].(string)), true
 
 	case "Query.getExpense":
 		if e.complexity.Query.GetExpense == nil {
@@ -549,6 +698,32 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetMembersOfEvent(childComplexity, args["id"].(string)), true
 
+	case "Query.getRole":
+		if e.complexity.Query.GetRole == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getRole_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetRole(childComplexity, args["eventID"].(string)), true
+
+	case "Query.myEvents":
+		if e.complexity.Query.MyEvents == nil {
+			break
+		}
+
+		return e.complexity.Query.MyEvents(childComplexity), true
+
+	case "Query.ping":
+		if e.complexity.Query.Ping == nil {
+			break
+		}
+
+		return e.complexity.Query.Ping(childComplexity), true
+
 	case "Query.user":
 		if e.complexity.Query.User == nil {
 			break
@@ -581,6 +756,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Response.Success(childComplexity), true
+
+	case "Session.description":
+		if e.complexity.Session.Description == nil {
+			break
+		}
+
+		return e.complexity.Session.Description(childComplexity), true
+
+	case "Session.endTime":
+		if e.complexity.Session.EndTime == nil {
+			break
+		}
+
+		return e.complexity.Session.EndTime(childComplexity), true
+
+	case "Session.id":
+		if e.complexity.Session.ID == nil {
+			break
+		}
+
+		return e.complexity.Session.ID(childComplexity), true
+
+	case "Session.name":
+		if e.complexity.Session.Name == nil {
+			break
+		}
+
+		return e.complexity.Session.Name(childComplexity), true
+
+	case "Session.startTime":
+		if e.complexity.Session.StartTime == nil {
+			break
+		}
+
+		return e.complexity.Session.StartTime(childComplexity), true
 
 	case "User.email":
 		if e.complexity.User.Email == nil {
@@ -635,8 +845,10 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputAddMemberInput,
 		ec.unmarshalInputEventInput,
 		ec.unmarshalInputExpenseInput,
+		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputMemberInput,
 		ec.unmarshalInputScheduleUpdateInput,
+		ec.unmarshalInputSessionInput,
 		ec.unmarshalInputUserInput,
 	)
 	first := true
@@ -734,7 +946,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema/auth/auth.graphql" "schema/event/event.graphql" "schema/expense/expense.graphql" "schema/user/user.graphql"
+//go:embed "schema/auth/auth.graphql" "schema/directive/directive.graphql" "schema/event/event.graphql" "schema/expense/expense.graphql" "schema/ping/ping.graphql" "schema/session/session.graphql" "schema/user/user.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -747,8 +959,11 @@ func sourceData(filename string) string {
 
 var sources = []*ast.Source{
 	{Name: "schema/auth/auth.graphql", Input: sourceData("schema/auth/auth.graphql"), BuiltIn: false},
+	{Name: "schema/directive/directive.graphql", Input: sourceData("schema/directive/directive.graphql"), BuiltIn: false},
 	{Name: "schema/event/event.graphql", Input: sourceData("schema/event/event.graphql"), BuiltIn: false},
 	{Name: "schema/expense/expense.graphql", Input: sourceData("schema/expense/expense.graphql"), BuiltIn: false},
+	{Name: "schema/ping/ping.graphql", Input: sourceData("schema/ping/ping.graphql"), BuiltIn: false},
+	{Name: "schema/session/session.graphql", Input: sourceData("schema/session/session.graphql"), BuiltIn: false},
 	{Name: "schema/user/user.graphql", Input: sourceData("schema/user/user.graphql"), BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -820,6 +1035,30 @@ func (ec *executionContext) field_Mutation_createEvent_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createSession_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["eventID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["eventID"] = arg0
+	var arg1 *model.SessionInput
+	if tmp, ok := rawArgs["data"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("data"))
+		arg1, err = ec.unmarshalOSessionInput2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSessionInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["data"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deleteEvent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -836,6 +1075,21 @@ func (ec *executionContext) field_Mutation_deleteEvent_args(ctx context.Context,
 }
 
 func (ec *executionContext) field_Mutation_deleteExpense_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteSession_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -898,6 +1152,54 @@ func (ec *executionContext) field_Mutation_updateEvent_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateExpense_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 model.ExpenseInput
+	if tmp, ok := rawArgs["data"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("data"))
+		arg1, err = ec.unmarshalNExpenseInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐExpenseInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["data"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateMemberToEvent_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["eventID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["eventID"] = arg0
+	var arg1 model.MemberInput
+	if tmp, ok := rawArgs["data"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("data"))
+		arg1, err = ec.unmarshalNMemberInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐMemberInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["data"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateSchedule_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -919,6 +1221,45 @@ func (ec *executionContext) field_Mutation_updateSchedule_args(ctx context.Conte
 		}
 	}
 	args["data"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateSession_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 *model.SessionInput
+	if tmp, ok := rawArgs["data"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("data"))
+		arg1, err = ec.unmarshalOSessionInput2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSessionInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["data"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_userLogin_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.LoginInput
+	if tmp, ok := rawArgs["data"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("data"))
+		arg0, err = ec.unmarshalNLoginInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐLoginInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["data"] = arg0
 	return args, nil
 }
 
@@ -953,6 +1294,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 }
 
 func (ec *executionContext) field_Query_event_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getEventSessions_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -1024,6 +1380,21 @@ func (ec *executionContext) field_Query_getMembersOfEvent_args(ctx context.Conte
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getRole_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["eventID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eventID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["eventID"] = arg0
 	return args, nil
 }
 
@@ -1156,6 +1527,50 @@ func (ec *executionContext) _AuthSchema_id(ctx context.Context, field graphql.Co
 }
 
 func (ec *executionContext) fieldContext_AuthSchema_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthSchema",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthSchema_email(ctx context.Context, field graphql.CollectedField, obj *model.AuthSchema) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthSchema_email(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Email, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthSchema_email(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthSchema",
 		Field:      field,
@@ -2341,8 +2756,28 @@ func (ec *executionContext) _Mutation_createEvent(ctx context.Context, field gra
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateEvent(rctx, fc.Args["data"].(model.EventInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateEvent(rctx, fc.Args["data"].(model.EventInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.EventResponse); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.EventResponse`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2400,8 +2835,28 @@ func (ec *executionContext) _Mutation_addMembersToEvent(ctx context.Context, fie
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddMembersToEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.AddMemberInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().AddMembersToEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.AddMemberInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2442,6 +2897,87 @@ func (ec *executionContext) fieldContext_Mutation_addMembersToEvent(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_updateMemberToEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateMemberToEvent(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateMemberToEvent(rctx, fc.Args["eventID"].(string), fc.Args["data"].(model.MemberInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateMemberToEvent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_Response_success(ctx, field)
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateMemberToEvent_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_removeMemberFromEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_removeMemberFromEvent(ctx, field)
 	if err != nil {
@@ -2455,8 +2991,28 @@ func (ec *executionContext) _Mutation_removeMemberFromEvent(ctx context.Context,
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().RemoveMemberFromEvent(rctx, fc.Args["id"].(string), fc.Args["memberId"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().RemoveMemberFromEvent(rctx, fc.Args["id"].(string), fc.Args["memberId"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2516,8 +3072,28 @@ func (ec *executionContext) _Mutation_deleteEvent(ctx context.Context, field gra
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteEvent(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteEvent(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2577,8 +3153,28 @@ func (ec *executionContext) _Mutation_updateEvent(ctx context.Context, field gra
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.EventInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateEvent(rctx, fc.Args["id"].(string), fc.Args["data"].(model.EventInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.EventResponse); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.EventResponse`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2636,8 +3232,28 @@ func (ec *executionContext) _Mutation_updateSchedule(ctx context.Context, field 
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateSchedule(rctx, fc.Args["id"].(string), fc.Args["data"].(model.ScheduleUpdateInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateSchedule(rctx, fc.Args["id"].(string), fc.Args["data"].(model.ScheduleUpdateInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2727,6 +3343,8 @@ func (ec *executionContext) fieldContext_Mutation_userSignUp(ctx context.Context
 				return ec.fieldContext_AuthSchema_accessToken(ctx, field)
 			case "id":
 				return ec.fieldContext_AuthSchema_id(ctx, field)
+			case "email":
+				return ec.fieldContext_AuthSchema_email(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthSchema", field.Name)
 		},
@@ -2739,6 +3357,69 @@ func (ec *executionContext) fieldContext_Mutation_userSignUp(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_userSignUp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_userLogin(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_userLogin(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UserLogin(rctx, fc.Args["data"].(model.LoginInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AuthSchema)
+	fc.Result = res
+	return ec.marshalNAuthSchema2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐAuthSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_userLogin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "accessToken":
+				return ec.fieldContext_AuthSchema_accessToken(ctx, field)
+			case "id":
+				return ec.fieldContext_AuthSchema_id(ctx, field)
+			case "email":
+				return ec.fieldContext_AuthSchema_email(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthSchema", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_userLogin_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2758,8 +3439,28 @@ func (ec *executionContext) _Mutation_addExpense(ctx context.Context, field grap
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddExpense(rctx, fc.Args["eventId"].(string), fc.Args["data"].(model.ExpenseInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().AddExpense(rctx, fc.Args["eventId"].(string), fc.Args["data"].(model.ExpenseInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2819,8 +3520,28 @@ func (ec *executionContext) _Mutation_deleteExpense(ctx context.Context, field g
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteExpense(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteExpense(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2863,6 +3584,418 @@ func (ec *executionContext) fieldContext_Mutation_deleteExpense(ctx context.Cont
 	if fc.Args, err = ec.field_Mutation_deleteExpense_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateExpense(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateExpense(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateExpense(rctx, fc.Args["id"].(string), fc.Args["data"].(model.ExpenseInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateExpense(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_Response_success(ctx, field)
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateExpense_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createSession(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createSession(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateSession(rctx, fc.Args["eventID"].(string), fc.Args["data"].(*model.SessionInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createSession(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_Response_success(ctx, field)
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createSession_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateSession(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateSession(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateSession(rctx, fc.Args["id"].(string), fc.Args["data"].(*model.SessionInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateSession(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_Response_success(ctx, field)
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateSession_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteSession(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteSession(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteSession(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Response); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.Response`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Response)
+	fc.Result = res
+	return ec.marshalNResponse2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteSession(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_Response_success(ctx, field)
+			case "message":
+				return ec.fieldContext_Response_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Response", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteSession_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PrivateUser_id(ctx context.Context, field graphql.CollectedField, obj *model.PrivateUser) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PrivateUser_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PrivateUser_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PrivateUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PrivateUser_name(ctx context.Context, field graphql.CollectedField, obj *model.PrivateUser) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PrivateUser_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PrivateUser_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PrivateUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -2998,6 +4131,166 @@ func (ec *executionContext) fieldContext_Query_event(ctx context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_getAccessibleEvents(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getAccessibleEvents(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetAccessibleEvents(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Event); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.Event`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Event)
+	fc.Result = res
+	return ec.marshalNEvent2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐEventᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getAccessibleEvents(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Event_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Event_name(ctx, field)
+			case "startDate":
+				return ec.fieldContext_Event_startDate(ctx, field)
+			case "location":
+				return ec.fieldContext_Event_location(ctx, field)
+			case "description":
+				return ec.fieldContext_Event_description(ctx, field)
+			case "endDate":
+				return ec.fieldContext_Event_endDate(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Event_createdBy(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myEvents(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_myEvents(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().MyEvents(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Event); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.Event`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Event)
+	fc.Result = res
+	return ec.marshalNEvent2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐEventᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_myEvents(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Event_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Event_name(ctx, field)
+			case "startDate":
+				return ec.fieldContext_Event_startDate(ctx, field)
+			case "location":
+				return ec.fieldContext_Event_location(ctx, field)
+			case "description":
+				return ec.fieldContext_Event_description(ctx, field)
+			case "endDate":
+				return ec.fieldContext_Event_endDate(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Event_createdBy(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getMembersOfEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_getMembersOfEvent(ctx, field)
 	if err != nil {
@@ -3011,8 +4304,28 @@ func (ec *executionContext) _Query_getMembersOfEvent(ctx context.Context, field 
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetMembersOfEvent(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetMembersOfEvent(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Member); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.Member`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3065,6 +4378,81 @@ func (ec *executionContext) fieldContext_Query_getMembersOfEvent(ctx context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_getRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getRole(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetRole(rctx, fc.Args["eventID"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(string); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getRole(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getRole_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getExpensesOfEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_getExpensesOfEvent(ctx, field)
 	if err != nil {
@@ -3078,8 +4466,28 @@ func (ec *executionContext) _Query_getExpensesOfEvent(ctx context.Context, field
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetExpensesOfEvent(rctx, fc.Args["eventId"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetExpensesOfEvent(rctx, fc.Args["eventId"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Expense); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.Expense`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3145,8 +4553,28 @@ func (ec *executionContext) _Query_getExpense(ctx context.Context, field graphql
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetExpense(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetExpense(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.ExpenseWithEvent); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.ExpenseWithEvent`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3214,8 +4642,28 @@ func (ec *executionContext) _Query_getExpensesByCategory(ctx context.Context, fi
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetExpensesByCategory(rctx, fc.Args["eventId"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetExpensesByCategory(rctx, fc.Args["eventId"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.ExpensesByCategory); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.ExpensesByCategory`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3262,6 +4710,137 @@ func (ec *executionContext) fieldContext_Query_getExpensesByCategory(ctx context
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_ping(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_ping(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Ping(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_ping(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getEventSessions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getEventSessions(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetEventSessions(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Session); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.Session`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Session)
+	fc.Result = res
+	return ec.marshalNSession2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSessionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getEventSessions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Session_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Session_name(ctx, field)
+			case "startTime":
+				return ec.fieldContext_Session_startTime(ctx, field)
+			case "endTime":
+				return ec.fieldContext_Session_endTime(ctx, field)
+			case "description":
+				return ec.fieldContext_Session_description(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Session", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getEventSessions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_users(ctx, field)
 	if err != nil {
@@ -3275,8 +4854,28 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Users(rctx)
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Users(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.PrivateUser); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/PrameshKarki/event-management-golang/graph/model.PrivateUser`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3288,9 +4887,9 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.User)
+	res := resTmp.([]*model.PrivateUser)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNPrivateUser2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐPrivateUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3302,17 +4901,11 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
-				return ec.fieldContext_User_id(ctx, field)
+				return ec.fieldContext_PrivateUser_id(ctx, field)
 			case "name":
-				return ec.fieldContext_User_name(ctx, field)
-			case "email":
-				return ec.fieldContext_User_email(ctx, field)
-			case "phoneNumber":
-				return ec.fieldContext_User_phoneNumber(ctx, field)
-			case "password":
-				return ec.fieldContext_User_password(ctx, field)
+				return ec.fieldContext_PrivateUser_name(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type PrivateUser", field.Name)
 		},
 	}
 	return fc, nil
@@ -3331,8 +4924,28 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx, fc.Args["id"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().User(rctx, fc.Args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.User); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/PrameshKarki/event-management-golang/graph/model.User`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3592,6 +5205,223 @@ func (ec *executionContext) _Response_message(ctx context.Context, field graphql
 func (ec *executionContext) fieldContext_Response_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Response",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Session_id(ctx context.Context, field graphql.CollectedField, obj *model.Session) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Session_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Session_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Session",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Session_name(ctx context.Context, field graphql.CollectedField, obj *model.Session) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Session_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Session_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Session",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Session_startTime(ctx context.Context, field graphql.CollectedField, obj *model.Session) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Session_startTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StartTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Session_startTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Session",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Session_endTime(ctx context.Context, field graphql.CollectedField, obj *model.Session) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Session_endTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EndTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Session_endTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Session",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Session_description(ctx context.Context, field graphql.CollectedField, obj *model.Session) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Session_description(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Session_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Session",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -5786,6 +7616,44 @@ func (ec *executionContext) unmarshalInputExpenseInput(ctx context.Context, obj 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj interface{}) (model.LoginInput, error) {
+	var it model.LoginInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"email", "password"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Password = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputMemberInput(ctx context.Context, obj interface{}) (model.MemberInput, error) {
 	var it model.MemberInput
 	asMap := map[string]interface{}{}
@@ -5856,6 +7724,62 @@ func (ec *executionContext) unmarshalInputScheduleUpdateInput(ctx context.Contex
 				return it, err
 			}
 			it.EndDate = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSessionInput(ctx context.Context, obj interface{}) (model.SessionInput, error) {
+	var it model.SessionInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "startTime", "endTime", "description"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "startTime":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startTime"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StartTime = data
+		case "endTime":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endTime"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EndTime = data
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
 		}
 	}
 
@@ -5944,6 +7868,11 @@ func (ec *executionContext) _AuthSchema(ctx context.Context, sel ast.SelectionSe
 			}
 		case "id":
 			out.Values[i] = ec._AuthSchema_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "email":
+			out.Values[i] = ec._AuthSchema_email(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -6325,6 +8254,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateMemberToEvent":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateMemberToEvent(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "removeMemberFromEvent":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_removeMemberFromEvent(ctx, field)
@@ -6360,6 +8296,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "userLogin":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_userLogin(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "addExpense":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_addExpense(ctx, field)
@@ -6371,6 +8314,78 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteExpense(ctx, field)
 			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateExpense":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateExpense(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createSession":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createSession(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateSession":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateSession(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteSession":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteSession(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var privateUserImplementors = []string{"PrivateUser"}
+
+func (ec *executionContext) _PrivateUser(ctx context.Context, sel ast.SelectionSet, obj *model.PrivateUser) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, privateUserImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PrivateUser")
+		case "id":
+			out.Values[i] = ec._PrivateUser_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._PrivateUser_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -6460,6 +8475,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getAccessibleEvents":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getAccessibleEvents(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myEvents":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myEvents(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "getMembersOfEvent":
 			field := field
 
@@ -6470,6 +8529,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getMembersOfEvent(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getRole":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getRole(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -6536,6 +8617,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getExpensesByCategory(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "ping":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_ping(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getEventSessions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getEventSessions(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -6644,6 +8769,62 @@ func (ec *executionContext) _Response(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var sessionImplementors = []string{"Session"}
+
+func (ec *executionContext) _Session(ctx context.Context, sel ast.SelectionSet, obj *model.Session) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, sessionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Session")
+		case "id":
+			out.Values[i] = ec._Session_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Session_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "startTime":
+			out.Values[i] = ec._Session_startTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endTime":
+			out.Values[i] = ec._Session_endTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._Session_description(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7356,6 +9537,11 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐLoginInput(ctx context.Context, v interface{}) (model.LoginInput, error) {
+	res, err := ec.unmarshalInputLoginInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNMember2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐMemberᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Member) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -7410,6 +9596,11 @@ func (ec *executionContext) marshalNMember2ᚖgithubᚗcomᚋPrameshKarkiᚋeven
 	return ec._Member(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNMemberInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐMemberInput(ctx context.Context, v interface{}) (model.MemberInput, error) {
+	res, err := ec.unmarshalInputMemberInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNMemberInput2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐMemberInput(ctx context.Context, v interface{}) ([]*model.MemberInput, error) {
 	var vSlice []interface{}
 	if v != nil {
@@ -7427,45 +9618,7 @@ func (ec *executionContext) unmarshalNMemberInput2ᚕᚖgithubᚗcomᚋPrameshKa
 	return res, nil
 }
 
-func (ec *executionContext) marshalNResponse2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐResponse(ctx context.Context, sel ast.SelectionSet, v model.Response) graphql.Marshaler {
-	return ec._Response(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐResponse(ctx context.Context, sel ast.SelectionSet, v *model.Response) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._Response(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNScheduleUpdateInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐScheduleUpdateInput(ctx context.Context, v interface{}) (model.ScheduleUpdateInput, error) {
-	res, err := ec.unmarshalInputScheduleUpdateInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
-	res, err := graphql.UnmarshalString(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	res := graphql.MarshalString(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) marshalNUser2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
-	return ec._User(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNPrivateUser2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐPrivateUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PrivateUser) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -7489,7 +9642,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeve
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalNPrivateUser2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐPrivateUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -7507,6 +9660,108 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeve
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalNPrivateUser2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐPrivateUser(ctx context.Context, sel ast.SelectionSet, v *model.PrivateUser) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PrivateUser(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNResponse2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐResponse(ctx context.Context, sel ast.SelectionSet, v model.Response) graphql.Marshaler {
+	return ec._Response(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNResponse2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐResponse(ctx context.Context, sel ast.SelectionSet, v *model.Response) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Response(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNScheduleUpdateInput2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐScheduleUpdateInput(ctx context.Context, v interface{}) (model.ScheduleUpdateInput, error) {
+	res, err := ec.unmarshalInputScheduleUpdateInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSession2ᚕᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSessionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Session) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSession2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSession(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSession2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSession(ctx context.Context, sel ast.SelectionSet, v *model.Session) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Session(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalString(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalString(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) marshalNUser2githubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
+	return ec._User(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
@@ -7824,6 +10079,14 @@ func (ec *executionContext) unmarshalOMemberInput2ᚖgithubᚗcomᚋPrameshKarki
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputMemberInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOSessionInput2ᚖgithubᚗcomᚋPrameshKarkiᚋeventᚑmanagementᚑgolangᚋgraphᚋmodelᚐSessionInput(ctx context.Context, v interface{}) (*model.SessionInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputSessionInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

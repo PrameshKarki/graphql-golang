@@ -2,13 +2,13 @@ package configs
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"sync"
 
 	"github.com/PrameshKarki/event-management-golang/utils"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/go-sql-driver/mysql"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -21,6 +21,7 @@ var TABLE_NAME = map[string]string{
 	"EVENT":       "events",
 	"USER":        "users",
 	"USER_EVENTS": "user_events",
+	"SESSION":     "event_sessions",
 	"EXPENSE":     "expenses",
 }
 
@@ -44,7 +45,7 @@ func initializeDatabase() {
 	if pingErr != nil {
 		log.Fatal(pingErr)
 	}
-	fmt.Println("Database Connected!")
+	logrus.Info("Database Connected!")
 }
 
 func GetDatabaseConnection() *sql.DB {

@@ -16,6 +16,9 @@ import (
 
 // UserSignUp is the resolver for the userSignUp field.
 func (r *mutationResolver) UserSignUp(ctx context.Context, data model.UserInput) (*model.AuthSchema, error) {
+	if err := utils.ValidateInput(data); err != nil {
+		return nil, err
+	}
 	user := userService.FindOneByEmail(data.Email)
 	if user.ID != "" {
 		return nil, fmt.Errorf("User already exists")
@@ -23,5 +26,24 @@ func (r *mutationResolver) UserSignUp(ctx context.Context, data model.UserInput)
 	userId, _ := services.UserSignUp(data)
 	tokenMetaData := utils.TokenMetadata{ID: fmt.Sprint(userId), Email: data.Email}
 	accessToken, _ := utils.SignAccessToken(tokenMetaData)
-	return &model.AuthSchema{ID: fmt.Sprint(userId), AccessToken: accessToken}, nil
+	return &model.AuthSchema{ID: fmt.Sprint(userId), AccessToken: accessToken, Email: data.Email}, nil
+}
+
+// UserLogin is the resolver for the userLogin field.
+func (r *mutationResolver) UserLogin(ctx context.Context, data model.LoginInput) (*model.AuthSchema, error) {
+	if err := utils.ValidateInput(data); err != nil {
+		return nil, err
+	}
+	user := userService.FindOneByEmail(data.Email)
+	if user.ID == "" {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+	err := utils.ComparePassword(user.Password, data.Password)
+	if err != nil {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+	tokenMetaData := utils.TokenMetadata{ID: user.ID, Email: user.Email}
+	accessToken, _ := utils.SignAccessToken(tokenMetaData)
+
+	return &model.AuthSchema{ID: user.ID, AccessToken: accessToken, Email: data.Email}, nil
 }

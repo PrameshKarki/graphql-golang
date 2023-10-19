@@ -5,6 +5,14 @@ type User{
     phoneNumber: String!
     password: String!
 }
+
+type PrivateUser{
+  id: ID!
+  name: String!
+ 
+}
+
+
 # Member is a user having a role in a event
 type Member{
   id: ID!
@@ -19,14 +27,14 @@ type UserResponse {
 }
 
 input UserInput {
-  name: String!
-  email: String!
-  phoneNumber: String!
-  password: String!
+  name: String!  @goTag(key: "validate", value: "required")
+  email: String! @goTag(key: "validate", value: "required,email")
+  phoneNumber: String!  @goTag(key: "validate", value: "required")
+  password: String! @goTag(key: "validate", value: "required")
 }
 
 extend type Query {
-  users: [User!]!
-  user(id: ID!): User!
+  users: [PrivateUser!]! @private
+  user(id: ID!): User! @private
 }
 
