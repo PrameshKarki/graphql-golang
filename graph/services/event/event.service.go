@@ -54,7 +54,7 @@ func GetAccessibleEvents(userID string) ([]*model.Event, error) {
 		"events.end_date",
 		"events.description",
 		"events.location",
-	)
+	).Distinct()
 	sql, _, _ := ds.ToSQL()
 	rows, err := db.Query(sql)
 	if err != nil {
@@ -101,7 +101,7 @@ func MyEvents(userID string) ([]*model.Event, error) {
 		"events.end_date",
 		"events.description",
 		"events.location",
-	)
+	).Distinct()
 	sql, _, _ := ds.ToSQL()
 	rows, err := db.Query(sql)
 	if err != nil {
