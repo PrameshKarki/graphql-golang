@@ -83,6 +83,10 @@ func (r *mutationResolver) RemoveMemberFromEvent(ctx context.Context, id string,
 	}
 	allowedRoles := []string{"ADMIN", "OWNER"}
 	userRole, _ := userEventService.GetRoleOfUser(userID, id)
+	userToBeDeletedRole, _ := userEventService.GetRoleOfUser(memberID, id)
+	if userToBeDeletedRole == "OWNER" {
+		return nil, fmt.Errorf("owner of the event cannot be removed")
+	}
 	// Check if the user is admin or owner of the event, Only owner and admin can add members to the event
 	hasPermission := utils.Includes(allowedRoles, userRole)
 
