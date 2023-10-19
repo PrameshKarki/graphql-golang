@@ -12,16 +12,13 @@ func Private() func(ctx context.Context, obj interface{}, next graphql.Resolver)
 	return func(ctx context.Context, obj interface{}, next graphql.Resolver) (interface{}, error) {
 		// Get user if from context
 		user := ctx.Value("user")
-		if user != nil {
-			userID := user.(*utils.TokenMetadata).ID
-			if userID == "" {
-				return nil, errors.New("unauthorized")
-
-			} else {
-				return next(ctx)
-			}
-		} else {
-			return nil, errors.New("unauthorized")
+		if user == nil {
+			return nil, errors.New("unauthenticated")
 		}
+		if user.(*utils.TokenMetadata).ID != "" {
+			return next(ctx)
+		}
+		return nil, errors.New("unauthenticated")
+
 	}
 }
