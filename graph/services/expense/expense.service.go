@@ -27,6 +27,22 @@ func CreateExpense(eventID string, body model.ExpenseInput) (int, error) {
 	return int(id), nil
 }
 
+func UpdateExpense(id string, body model.ExpenseInput) (int, error) {
+	db := configs.GetDatabaseConnection()
+	ds := configs.GetDialect().Update(configs.TABLE_NAME["EXPENSE"]).Set(goqu.Record{"item_name": body.ItemName, "cost": body.Cost, "description": body.Description, "category": body.Category}).Where(goqu.Ex{"id": id})
+	sql, _, _ := ds.ToSQL()
+	logrus.Info("SQL", sql)
+	res, err := db.Exec(sql)
+	if err != nil {
+		panic(err)
+	}
+	rowsAffected, _ := res.RowsAffected()
+	if err != nil {
+		panic(err)
+	}
+	return int(rowsAffected), nil
+}
+
 func GetExpensesOfEvent(eventID string) ([]*model.Expense, error) {
 	db := configs.GetDatabaseConnection()
 	ds := configs.GetDialect().Select("ID", "item_name", "cost", "description", "category").From(configs.TABLE_NAME["EXPENSE"]).Where(goqu.Ex{"event_id": eventID})

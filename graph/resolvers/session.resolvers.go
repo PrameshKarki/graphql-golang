@@ -44,14 +44,14 @@ func (r *mutationResolver) UpdateSession(ctx context.Context, id string, data *m
 	hasPermission := utils.Includes(allowedRoles, userRole)
 
 	if !hasPermission {
-		return nil, fmt.Errorf("you don't have permission to add members to the event")
+		return nil, fmt.Errorf("you don't have permission update session")
 	}
-	_, err := services.DeleteSession(id)
+	_, err := services.UpdateSession(id, data)
 	if err != nil {
 		logrus.Error(err.Error())
 		return &model.Response{Success: false, Message: "internal server error"}, nil
 	} else {
-		return &model.Response{Success: true, Message: "session deleted successfully"}, nil
+		return &model.Response{Success: true, Message: "session updated successfully"}, nil
 	}
 }
 

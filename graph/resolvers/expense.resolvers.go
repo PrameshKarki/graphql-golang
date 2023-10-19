@@ -44,6 +44,26 @@ func (r *mutationResolver) DeleteExpense(ctx context.Context, id string) (*model
 	}
 }
 
+// UpdateExpense is the resolver for the updateExpense field.
+func (r *mutationResolver) UpdateExpense(ctx context.Context, id string, data model.ExpenseInput) (*model.Response, error) {
+	allowedRoles := []string{"ADMIN", "OWNER"}
+	userID := ctx.Value("user").(*utils.TokenMetadata).ID
+	associatedEvent, _ := expenseService.GetEventID(id)
+	userRole, _ := userEventService.GetRoleOfUser(userID, associatedEvent)
+	hasPermission := utils.Includes(allowedRoles, userRole)
+
+	if !hasPermission {
+		return nil, fmt.Errorf("you don't have permission to remove the expense. Please contact the event owner to remove it")
+	}
+	_, err := expenseService.UpdateExpense(id, data)
+	if err != nil {
+		return nil, err
+	} else {
+		return &model.Response{Success: true, Message: "Expense updated successfully."}, nil
+	}
+
+}
+
 // GetExpensesOfEvent is the resolver for the getExpensesOfEvent field.
 func (r *queryResolver) GetExpensesOfEvent(ctx context.Context, eventID string) ([]*model.Expense, error) {
 	return expenseService.GetExpensesOfEvent(eventID)

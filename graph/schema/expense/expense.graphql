@@ -35,4 +35,5 @@ extend type Query {
 extend type Mutation {
   addExpense(eventId: ID!,data: ExpenseInput!): Response! @private
   deleteExpense(id: ID!): Response! @private
+  updateExpense(id: ID!,data: ExpenseInput!): Response! @private
 }
